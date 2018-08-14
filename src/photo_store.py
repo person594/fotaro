@@ -14,12 +14,14 @@ def hash_file(path: str) -> str:
     return m.digest().hex()
 
 def image_timestamp(im: Image) -> Optional[int]:
-    exif = im._getexif()
+    try:
+        exif = im._getexif()
+    except AttributeError:
+        return None
     if 36867 in exif:
         return int(datetime.strptime(exif[36867], '%Y:%m:%d %H:%M:%S').timestamp())
     else:
         return None
-
 
 def escape(x: Any) -> str:
     if x is None:
@@ -49,7 +51,7 @@ class PhotoStore:
         c.execute("REPLACE INTO %s VALUES(%s)" % (table, args_str))
         self.con.commit()
 
-    def file_hash(path: str) -> Optional[str]:
+    def file_hash(self, path: str) -> Optional[str]:
         c = self.con.cursor()
         c.execute("SELECT Hash FROM Files WHERE Path=%s" % escape(path))
         r = c.fetchone()
@@ -62,7 +64,7 @@ class PhotoStore:
         try:
             hsh = hash_file(path)
             if hsh == self.file_hash(path):
-                continue
+                return
             im = Image.open(path)
             w, h = im.size
             timestamp = image_timestamp(im)
@@ -72,7 +74,7 @@ class PhotoStore:
         except OSError:
             pass
 
-    def remove_file(self, str path) -> None:
+    def remove_file(self, path: str) -> None:
         c = self.con.cursor()
         c.execute("SELECT Hash FROM Files WHERE Path=%s" % escape(path))
         hsh = c.fetchone()
@@ -83,7 +85,7 @@ class PhotoStore:
         # if that was the only copy of the photo, remove it from the photos table
         c.execute("SELECT * FROM Photos WHERE HASH=%s" % escape(hsh))
         if c.fetchone() is None:
-            c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh)))
+            c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
 
     def update_dir(self, path: str) -> None:
         paths = set()
@@ -91,10 +93,11 @@ class PhotoStore:
             for fname in fnames:
                 paths.add(os.path.join(dirpath, fname))
         # query the files we think are in that directory, and remove the ones that don't exist anymore
-        self.c.execute("SELECT Path FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
-        for (path,) in self.c.fetchall():
+        c = self.con.cursor()
+        c.execute("SELECT Path FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
+        for (path,) in c.fetchall():
             if path not in paths:
-            self.remove_file(path)
+                self.remove_file(path)
         # update the files that d
         for path in paths:
             self.add_file(path)
