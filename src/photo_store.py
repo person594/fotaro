@@ -23,6 +23,10 @@ def image_timestamp(im: Image) -> Optional[int]:
     else:
         return None
 
+def image_mime_type(im: Image):
+    return Image.MIME[im.format]
+    
+
 def escape(x: Any) -> str:
     if x is None:
         return "NULL"
@@ -42,7 +46,7 @@ class PhotoStore:
         self.con = lite.connect(db_file)
         c = self.con.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
-        c.execute("CREATE TABLE IF NOT EXISTS Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL)")
+        c.execute("CREATE TABLE IF NOT EXISTS Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
         self.con.commit()
 
     def _insert(self, table: str, *args: Any):
@@ -51,9 +55,17 @@ class PhotoStore:
         c.execute("REPLACE INTO %s VALUES(%s)" % (table, args_str))
         self.con.commit()
 
-    def file_hash(self, path: str) -> Optional[str]:
+    def hash_to_path_mime(self, hsh: str) -> Optional[str]:
         c = self.con.cursor()
-        c.execute("SELECT Hash FROM Files WHERE Path=%s" % escape(path))
+        c.execute("SELECT Path, Mime from Files WHERE Hash=%s" % escape(hsh))
+        r = c.fetchone()
+        if r is None:
+            return None
+        return r
+        
+    def db_file_last_modified(self, path: str) -> Optional[str]:
+        c = self.con.cursor()
+        c.execute("SELECT Modified FROM Files WHERE Path=%s" % escape(path))
         r = c.fetchone()
         if r is not None:
             return r[0]
@@ -62,15 +74,17 @@ class PhotoStore:
         
     def add_file(self, path: str) -> None:
         try:
-            hsh = hash_file(path)
-            if hsh == self.file_hash(path):
+            modified = int(os.path.getmtime(path))
+            if modified == self.db_file_last_modified(path):
                 return
             im = Image.open(path)
             w, h = im.size
             timestamp = image_timestamp(im)
+            mime = image_mime_type(im)
+            hsh = hash_file(path)
             self.remove_file(path)
             self._insert("Photos", hsh, w, h, timestamp)
-            self._insert("Files", path, hsh)
+            self._insert("Files", path, hsh, modified, mime)
         except OSError:
             pass
 
@@ -81,12 +95,14 @@ class PhotoStore:
         if hsh is None:
             # path was not in the db
             return
+        hsh = hsh[0]
         c.execute("DELETE FROM Files WHERE Path=%s" % escape(path))
         # if that was the only copy of the photo, remove it from the photos table
-        c.execute("SELECT * FROM Photos WHERE HASH=%s" % escape(hsh))
+        c.execute("SELECT * FROM Files WHERE HASH=%s" % escape(hsh))
         if c.fetchone() is None:
             c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
-
+        self.con.commit()
+            
     def update_dir(self, path: str) -> None:
         paths = set()
         for dirpath, _, fnames in os.walk(path):
