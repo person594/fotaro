@@ -39,11 +39,10 @@ def run(db_path):
                     self.end_headers()
                     self.wfile.write(contents)
                     return
-            elif len(spath) == 4 and spath[1] == 'small':
+            elif len(spath) == 3 and spath[1] == 'thumb':
                 try:
-                    min_dim = int(spath[2])
-                    hsh = spath[3]
-                    cm = ps.get_scaled_photo(hsh, min_dim)
+                    hsh = spath[2]
+                    cm = ps.get_thumbnail(hsh)
                     if cm is not None:
                         contents, mime = cm
                         self.send_response(200)

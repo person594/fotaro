@@ -1,11 +1,19 @@
 import os
 import io
+import time
 from datetime import datetime
 import hashlib
 from typing import List, Optional, Any, Tuple, overload
 
 from PIL import Image
 import sqlite3 as lite
+
+def timed(f, *args):
+    before = time.time()
+    result = f(*args)
+    after = time.time()
+    print("%s: %.4f seconds" % (f.__name__, after - before))
+    return result
 
 def hash_file(path: str) -> str:
     m = hashlib.sha256()
@@ -42,8 +50,10 @@ def str_escape(s: str) -> str:
     return s.replace("'", "''")
     
 class PhotoStore:
-    def __init__(self, db_file: str) -> None:
-        self.db_file = db_file
+    def __init__(self, data_dir: str) -> None:
+        db_file = os.path.join(data_dir, "album.db")
+        self.thumbs_dir = os.path.join(data_dir, "thumbs")
+        self.thumbnail_height = 350
         self.con = lite.connect(db_file)
         c = self.con.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
@@ -84,19 +94,28 @@ class PhotoStore:
             contents = f.read()
         return contents, mime
 
-    def get_scaled_photo(self, hsh: str, min_dim: int) -> Optional[Tuple[bytes, str]]:
-        pm = self.hash_to_path_mime(hsh)
-        if pm is None:
-            return None
-        path, _ = pm
-        im = Image.open(path)
-        min_image_dim = min((im.size))
-        f = min_dim / min_image_dim
-        w, h = im.size
-        resized = im.resize((int(w*f), int(h*f)), Image.BILINEAR)
-        byte_io = io.BytesIO()
-        resized.save(byte_io, "JPEG")
-        return (byte_io.getvalue(), "image/jpeg")
+    def get_thumbnail(self, hsh: str) -> Optional[Tuple[bytes, str]]:
+        thumb_dir = os.path.join(self.thumbs_dir, hsh[:2])
+        if not os.path.isdir(thumb_dir):
+            os.makedirs(thumb_dir)
+        thumb_path = os.path.join(thumb_dir, hsh[2:] + ".jpg")
+
+        if not os.path.isfile(thumb_path):
+            pm = self.hash_to_path_mime(hsh)
+            if pm is None:
+                return None
+            path, _ = pm
+            im = Image.open(path)
+            w, h = im.size
+            f = self.thumbnail_height / h
+            resized = timed(im.resize, (int(w*f), int(h*f)), Image.ANTIALIAS)
+            resized.save(thumb_path, "JPEG")
+
+        with open(thumb_path, "rb") as f:
+            contents = f.read()
+        return contents, "image/jpeg"
+
+
     
     def db_file_last_modified(self, path: str) -> Optional[str]:
         c = self.con.cursor()
@@ -121,6 +140,7 @@ class PhotoStore:
             print("Adding file %s" % path)
             self._insert("Photos", hsh, w, h, timestamp)
             self._insert("Files", path, hsh, modified, mime)
+            self.get_thumbnail(hsh)
         except OSError:
             pass
 
@@ -139,6 +159,10 @@ class PhotoStore:
         if c.fetchone() is None:
             print("Removing photo %s" % hsh)
             c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
+            thumb_path = os.path.join(self.thumbs_path, hsh[:2], hsh[2:] + ".jpg")
+            if os.path.isfile(thumb_path):
+                #os.remove(thumb_path)
+                print(thumb_path)
         self.con.commit()
             
     def update_dir(self, path: str) -> None:

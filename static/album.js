@@ -25,7 +25,7 @@ function showModal(hash) {
     modalIndex = photos.indexOf(hash)
     modal.style.display = "block";
     modalPlaceholderImg.style.display = "block";
-    modalPlaceholderImg.src = "/small/600/" + hash
+    modalPlaceholderImg.src = "/thumb/" + hash
     modalImg.style.display = "none";
     modalImg.src = "/photo/" + hash;
     modalImg.onload = function() {
@@ -89,7 +89,7 @@ function addPhotoToFlow(hash) {
     };
     div.append(a);
     var img = document.createElement("img")
-    img.src = "/small/600/" + hash
+    img.src = "/thumb/" + hash
     a.append(img)
     flow.append(div);
     return new Promise(function(resolve, reject) {

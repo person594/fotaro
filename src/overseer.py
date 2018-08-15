@@ -2,8 +2,8 @@ import sys
 from photo_store import PhotoStore
 import time
 
-def main(db_path: str, watch_dir: str):
-    ps = PhotoStore(db_path)
+def main(data_dir: str, watch_dir: str):
+    ps = PhotoStore(data_dir)
     while True:
         ps.update_dir(watch_dir)
         time.sleep(0.5)
