@@ -27,6 +27,8 @@ def image_timestamp(im: Image) -> Optional[int]:
         exif = im._getexif()
     except AttributeError:
         return None
+    if exif is None:
+        return None
     if 36867 in exif:
         return int(datetime.strptime(exif[36867], '%Y:%m:%d %H:%M:%S').timestamp())
     else:
