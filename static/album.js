@@ -1,3 +1,8 @@
+minDistBeforeLoad = 1000
+chunkSize = 20
+pictures = []
+nLoaded = 0
+
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -8,19 +13,54 @@ var getJSON = function(url, callback) {
     xhr.send();
 };
 
-function add_img_to_flow(hash) {
+scrollHookActive = true;
+
+function scrollHook(e) {
+    if (!scrollHookActive){
+	return
+    }
+    var flow = document.getElementById('flow')
+    scrollBottom = flow.scrollTop + flow.offsetHeight
+    marginToBottom = flow.scrollHeight - scrollBottom
+    if (marginToBottom <= minDistBeforeLoad) {
+	scrollHookActive = false;
+	loadMorePhotos(chunkSize).then(function() {
+	    scrollHookActive = true;
+	});
+    }
+    console.log(e);
+}
+
+function loadMorePhotos(n) {
+    upper = Math.min(pictures.length, nLoaded + n)
+    promises = []
+    while (nLoaded < upper) {
+	promises.push(addPhotoToFlow(pictures[nLoaded++]));
+    }
+    return Promise.all(promises);
+}
+
+function addPhotoToFlow(hash) {
     var flow = document.getElementById('flow');
-    var img = document.createElement('img');
-    img.src = "/photo/" + hash;
-    img.onload = reflow;
-    flow.append(img);
+    var div = document.createElement("div");
+    div.classList.add("photoElement");
+    var a = document.createElement("a");
+    a.href = "/photo/" + hash;
+    div.append(a);
+    var img = document.createElement("img")
+    img.src = "/small/600/" + hash
+    a.append(img)
+    flow.append(div);
+    return new Promise(function(resolve, reject) {
+	img.onload = resolve;
+    }).then(reflow);
 }
 
 function reflow() {
     var flow = document.getElementById('flow');
-    var flow_width = flow.clientWidth - 10;
+    var flowWidth = flow.clientWidth - 10;
     var row = []
-    var row_width = 0
+    var rowWidth = 0
     var i = 0;
     while (i < flow.childElementCount) {
 	child = flow.children[i]
@@ -28,27 +68,28 @@ function reflow() {
 	    child.remove()
 	    continue;
 	}
-	var aspectRatio = child.naturalWidth / child.naturalHeight;
-	child.width = child.height * aspectRatio;
-	var next_width = row_width + child.clientWidth;
-	var prev_badness = Math.abs(Math.log(row_width / flow_width));
-	var next_badness = Math.abs(Math.log(next_width / flow_width));
-	if (next_badness < prev_badness) {
-	    row.push(child)
-	    row_width = next_width
+	img = child.children[0].children[0]
+	var aspectRatio = img.naturalWidth / img.naturalHeight;
+	img.width = img.height * aspectRatio;
+	var nextWidth = rowWidth + img.clientWidth;
+	var prevBadness = Math.abs(Math.log(rowWidth / flowWidth));
+	var nextBadness = Math.abs(Math.log(nextWidth / flowWidth));
+	if (nextBadness < prevBadness) {
+	    row.push(img)
+	    rowWidth = nextWidth
 	    ++i;
 	} else {
-	    ratio = flow_width / row_width;
+	    ratio = flowWidth / rowWidth;
 	    row.forEach(function(img) {
 		img.width *= ratio;
 	    });
-	    row = [child];
-	    row_width = child.clientWidth;
+	    row = [img];
+	    rowWidth = img.clientWidth;
 	    flow.insertBefore(document.createElement("br"), child);
 	    i += 2;
 	}
     }
-    ratio = flow_width / row_width;
+    ratio = flowWidth / rowWidth;
     if (ratio < 1.25) {
 	row.forEach(function(img) {
 	    img.width *= ratio;
@@ -63,9 +104,8 @@ if (document.URL.indexOf("?") < 0) {
 }
 
 getJSON("/list/" + listName, function(list) {
-    list.forEach(function(image) {
-	add_img_to_flow(image);
-    });
+    pictures = list
+    loadMorePhotos(chunkSize);
 });
 
 

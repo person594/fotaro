@@ -1,7 +1,8 @@
 import os
+import io
 from datetime import datetime
 import hashlib
-from typing import List, Optional, Any, overload
+from typing import List, Optional, Any, Tuple, overload
 
 from PIL import Image
 import sqlite3 as lite
@@ -51,7 +52,7 @@ class PhotoStore:
 
     def list_all_photos(self):
         c = self.con.cursor()
-        c.execute("SELECT Hash FROM Photos ORDER BY Timestamp")
+        c.execute("SELECT Hash FROM Photos WHERE Timestamp IS NOT NULL ORDER BY Timestamp DESC")
         return [r[0] for r in c.fetchall()]
 
     def get_list(self, list_name):
@@ -73,7 +74,30 @@ class PhotoStore:
         if r is None:
             return None
         return r
-        
+
+    def get_photo(self, hsh: str) -> Optional[Tuple[bytes, str]]:
+        pm = self.hash_to_path_mime(hsh)
+        if pm is None:
+            return None
+        path, mime = pm
+        with open(path, "rb") as f:
+            contents = f.read()
+        return contents, mime
+
+    def get_scaled_photo(self, hsh: str, min_dim: int) -> Optional[Tuple[bytes, str]]:
+        pm = self.hash_to_path_mime(hsh)
+        if pm is None:
+            return None
+        path, _ = pm
+        im = Image.open(path)
+        min_image_dim = min((im.size))
+        f = min_dim / min_image_dim
+        w, h = im.size
+        resized = im.resize((int(w*f), int(h*f)))
+        byte_io = io.BytesIO()
+        resized.save(byte_io, "JPEG")
+        return (byte_io.getvalue(), "image/jpeg")
+    
     def db_file_last_modified(self, path: str) -> Optional[str]:
         c = self.con.cursor()
         c.execute("SELECT Modified FROM Files WHERE Path=%s" % escape(path))

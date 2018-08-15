@@ -1,21 +1,26 @@
 <html>
   <head>
-    <style> 
-     div.flow img{
+    <style>
+      div.photoElement{
+	  display: inline-block;
+      }
+      div.photoElement img{
 	  padding: 2px;
 	  object-fit: cover;
 	  height: 300px;
       }
-
-     div.flow{
-	  width: 1000px;
+      
+      div.flow{
+	  width: 100%;
+	  height: 100%;
+	  overflow-y: scroll;
       }
 
 </style>
     <title>Album Title</title>
   </head>
   <body>
-    <div id="flow" class="flow">
+    <div id="flow" class="flow" onscroll="scrollHook(event)">
     </div>
     <script src="album.js"></script>
   </body>
