@@ -49,6 +49,17 @@ class PhotoStore:
         c.execute("CREATE TABLE IF NOT EXISTS Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
         self.con.commit()
 
+    def list_all_photos(self):
+        c = self.con.cursor()
+        c.execute("SELECT Hash FROM Photos ORDER BY Timestamp")
+        return [r[0] for r in c.fetchall()]
+
+    def get_list(self, list_name):
+        if list_name == "all":
+            return self.list_all_photos()
+        else:
+            return []
+
     def _insert(self, table: str, *args: Any):
         c = self.con.cursor()
         args_str = ", ".join([escape(arg) for arg in args])

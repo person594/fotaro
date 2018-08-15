@@ -1,3 +1,13 @@
+var getJSON = function(url, callback) {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.responseType = 'json';
+    xhr.onload = function() {
+        callback(xhr.response);
+    };
+    xhr.send();
+};
+
 function add_img_to_flow(hash) {
     var flow = document.getElementById('flow');
     var img = document.createElement('img');
@@ -8,7 +18,7 @@ function add_img_to_flow(hash) {
 
 function reflow() {
     var flow = document.getElementById('flow');
-    var flow_width = flow.clientWidth;
+    var flow_width = flow.clientWidth - 10;
     var row = []
     var row_width = 0
     var i = 0;
@@ -18,6 +28,8 @@ function reflow() {
 	    child.remove()
 	    continue;
 	}
+	var aspectRatio = child.naturalWidth / child.naturalHeight;
+	child.width = child.height * aspectRatio;
 	var next_width = row_width + child.clientWidth;
 	var prev_badness = Math.abs(Math.log(row_width / flow_width));
 	var next_badness = Math.abs(Math.log(next_width / flow_width));
@@ -35,24 +47,26 @@ function reflow() {
 	    flow.insertBefore(document.createElement("br"), child);
 	    i += 2;
 	}
-	ratio = flow_width / row_width;
-	if (ratio < 1) {
-	    row.forEach(function(img) {
-		img.width *= ratio;
-	    });
-	}
+    }
+    ratio = flow_width / row_width;
+    if (ratio < 1.25) {
+	row.forEach(function(img) {
+	    img.width *= ratio;
+	});
     }
 }
 
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
-add_img_to_flow("13c3096dc1a50d2061ee96110aa8abaf23266f43deab7e78d6aec71dcc6563f6");
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
-add_img_to_flow("13c3096dc1a50d2061ee96110aa8abaf23266f43deab7e78d6aec71dcc6563f6");
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
-add_img_to_flow("13c3096dc1a50d2061ee96110aa8abaf23266f43deab7e78d6aec71dcc6563f6");
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
-add_img_to_flow("13c3096dc1a50d2061ee96110aa8abaf23266f43deab7e78d6aec71dcc6563f6");
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
-add_img_to_flow("13c3096dc1a50d2061ee96110aa8abaf23266f43deab7e78d6aec71dcc6563f6");
-add_img_to_flow("362607ab46eb80b2c7961ce76bdc7b440910d59b5e8840ea45512dfd16113a87");
+if (document.URL.indexOf("?") < 0) {
+    listName = "all"
+} else {
+    listName = document.URL.split("?")[1]
+}
+
+getJSON("/list/" + listName, function(list) {
+    list.forEach(function(image) {
+	add_img_to_flow(image);
+    });
+});
+
+
 

@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from photo_store import PhotoStore
@@ -41,6 +42,14 @@ def run(db_path):
                         contents = f.read()
                     self.wfile.write(contents)
                     return
+            elif len(spath) == 3 and spath[1] == "list":
+                list_name = spath[2]
+                photo_list = ps.get_list(list_name)
+                response = json.dumps(photo_list)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(bytes(response, "utf8"))
             else:
                 self.serve_static(self.path)
            
