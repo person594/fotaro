@@ -28,6 +28,7 @@ function showModal(hash) {
     modalPlaceholderImg.src = "/thumb/" + hash
     modalImg.style.display = "none";
     modalImg.src = "/photo/" + hash;
+    location.hash = "photo" + modalIndex;
     modalImg.onload = function() {
 	modalPlaceholderImg.style.display = "none";
 	modalImg.style.display = "block";
@@ -39,6 +40,8 @@ function hideModal() {
 }
 
 function modalPrev(){
+    if (modal.style.display == "none")
+	return
     if (modalIndex >= 1) {
 	--modalIndex;
 	showModal(photos[modalIndex])
@@ -46,6 +49,8 @@ function modalPrev(){
 }
 
 function modalNext(){
+    if (modal.style.display == "none")
+	return
     if (modalIndex >= 0 && modalIndex < photos.length - 1) {
 	++modalIndex;
 	showModal(photos[modalIndex])
@@ -78,12 +83,14 @@ function loadMorePhotos(n) {
     return Promise.all(promises);
 }
 
+n_photos_added = 0
 function addPhotoToFlow(hash) {
     var flow = document.getElementById('flow');
     var div = document.createElement("div");
+    div.id = "photo" + n_photos_added
     div.classList.add("photoElement");
     var a = document.createElement("a");
-    a.href = "#"
+    a.href = "#photo" + n_photos_added
     a.onclick = function() {
 	showModal(hash);
     };
@@ -92,6 +99,7 @@ function addPhotoToFlow(hash) {
     img.src = "/thumb/" + hash
     a.append(img)
     flow.append(div);
+    ++n_photos_added;
     return new Promise(function(resolve, reject) {
 	img.onload = resolve;
     }).then(reflow);
