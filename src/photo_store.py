@@ -93,7 +93,7 @@ class PhotoStore:
         min_image_dim = min((im.size))
         f = min_dim / min_image_dim
         w, h = im.size
-        resized = im.resize((int(w*f), int(h*f)))
+        resized = im.resize((int(w*f), int(h*f)), Image.BILINEAR)
         byte_io = io.BytesIO()
         resized.save(byte_io, "JPEG")
         return (byte_io.getvalue(), "image/jpeg")

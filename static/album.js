@@ -15,6 +15,44 @@ var getJSON = function(url, callback) {
 
 scrollHookActive = true;
 
+modal = document.getElementById("modal")
+modalImg = document.getElementById("modalImg")
+modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
+
+modalIndex = -1
+
+function showModal(hash) {
+    modalIndex = photos.indexOf(hash)
+    modal.style.display = "block";
+    modalPlaceholderImg.style.display = "block";
+    modalPlaceholderImg.src = "/small/600/" + hash
+    modalImg.style.display = "none";
+    modalImg.src = "/photo/" + hash;
+    modalImg.onload = function() {
+	modalPlaceholderImg.style.display = "none";
+	modalImg.style.display = "block";
+    }
+}
+
+function hideModal() {
+    modal.style.display = "none";
+}
+
+function modalPrev(){
+    if (modalIndex >= 1) {
+	--modalIndex;
+	showModal(photos[modalIndex])
+    }
+}
+
+function modalNext(){
+    if (modalIndex >= 0 && modalIndex < photos.length - 1) {
+	++modalIndex;
+	showModal(photos[modalIndex])
+    }
+}
+
+
 function scrollHook(e) {
     if (!scrollHookActive){
 	return
@@ -32,10 +70,10 @@ function scrollHook(e) {
 }
 
 function loadMorePhotos(n) {
-    upper = Math.min(pictures.length, nLoaded + n)
+    upper = Math.min(photos.length, nLoaded + n)
     promises = []
     while (nLoaded < upper) {
-	promises.push(addPhotoToFlow(pictures[nLoaded++]));
+	promises.push(addPhotoToFlow(photos[nLoaded++]));
     }
     return Promise.all(promises);
 }
@@ -45,7 +83,10 @@ function addPhotoToFlow(hash) {
     var div = document.createElement("div");
     div.classList.add("photoElement");
     var a = document.createElement("a");
-    a.href = "/photo/" + hash;
+    a.href = "#"
+    a.onclick = function() {
+	showModal(hash);
+    };
     div.append(a);
     var img = document.createElement("img")
     img.src = "/small/600/" + hash
@@ -97,6 +138,21 @@ function reflow() {
     }
 }
 
+document.onkeyup = function(e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    switch(key) {
+    case 27: // esc
+	hideModal();
+	break;
+    case 37: // left
+	modalPrev();
+	break
+    case 39: // right
+	modalNext();
+	break;
+    } 
+}
+
 if (document.URL.indexOf("?") < 0) {
     listName = "all"
 } else {
@@ -104,7 +160,7 @@ if (document.URL.indexOf("?") < 0) {
 }
 
 getJSON("/list/" + listName, function(list) {
-    pictures = list
+    photos = list
     loadMorePhotos(chunkSize);
 });
 
