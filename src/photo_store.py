@@ -118,6 +118,7 @@ class PhotoStore:
             mime = image_mime_type(im)
             hsh = hash_file(path)
             self.remove_file(path)
+            print("Adding file %s" % path)
             self._insert("Photos", hsh, w, h, timestamp)
             self._insert("Files", path, hsh, modified, mime)
         except OSError:
@@ -131,10 +132,12 @@ class PhotoStore:
             # path was not in the db
             return
         hsh = hsh[0]
+        print("Removing file %s" % path)
         c.execute("DELETE FROM Files WHERE Path=%s" % escape(path))
         # if that was the only copy of the photo, remove it from the photos table
         c.execute("SELECT * FROM Files WHERE HASH=%s" % escape(hsh))
         if c.fetchone() is None:
+            print("Removing photo %s" % hsh)
             c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
         self.con.commit()
             
