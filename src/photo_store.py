@@ -64,8 +64,8 @@ class PhotoStore:
 
     def list_all_photos(self):
         c = self.con.cursor()
-        c.execute("SELECT Hash FROM Photos WHERE Timestamp IS NOT NULL ORDER BY Timestamp DESC")
-        return [r[0] for r in c.fetchall()]
+        c.execute("SELECT Hash, Width, Height FROM Photos WHERE Timestamp IS NOT NULL ORDER BY Timestamp DESC")
+        return list(c.fetchall())
 
     def get_list(self, list_name):
         if list_name == "all":
