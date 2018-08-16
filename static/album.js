@@ -1,6 +1,7 @@
-chunkSize = 50
-photoList = []
-rowHeight = 300
+chunkSize = 50;
+photoList = [];
+rowHeight = 300;
+chunkLoadCooldown = 2000;
 
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -130,7 +131,10 @@ function loadChunk() {
 	promises.push(loadPhoto(center + d));
 	promises.push(loadPhoto(center - d));
     }
-    return Promise.all(promises)
+    return new Promise(function(resolve, reject) {
+	setTimeout(resolve, chunkLoadCooldown);
+    });
+    //return Promise.all(promises)
 }
 
 /*
@@ -247,6 +251,6 @@ getJSON("/list/" + listName).then(function(list) {
     photoList = list;
     generatePhotoElements();
     reflow();
-});
+}).then(loadChunk);
 
 
