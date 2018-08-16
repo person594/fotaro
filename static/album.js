@@ -21,7 +21,7 @@ modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
 
 modalIndex = -1
 
-function showModal(hash) {
+function modalShow(hash) {
     modalIndex = photos.indexOf(hash)
     modal.style.display = "block";
     modalPlaceholderImg.style.display = "block";
@@ -35,7 +35,7 @@ function showModal(hash) {
     }
 }
 
-function hideModal() {
+function modalClose() {
     modal.style.display = "none";
 }
 
@@ -44,7 +44,7 @@ function modalPrev(){
 	return
     if (modalIndex >= 1) {
 	--modalIndex;
-	showModal(photos[modalIndex])
+	modalShow(photos[modalIndex])
     }
 }
 
@@ -53,7 +53,7 @@ function modalNext(){
 	return
     if (modalIndex >= 0 && modalIndex < photos.length - 1) {
 	++modalIndex;
-	showModal(photos[modalIndex])
+	modalShow(photos[modalIndex])
     }
 }
 
@@ -92,7 +92,7 @@ function addPhotoToFlow(hash) {
     var a = document.createElement("a");
     a.href = "#photo" + n_photos_added
     a.onclick = function() {
-	showModal(hash);
+	modalShow(hash);
     };
     div.append(a);
     var img = document.createElement("img")
@@ -150,7 +150,7 @@ document.onkeyup = function(e) {
     var key = e.keyCode ? e.keyCode : e.which;
     switch(key) {
     case 27: // esc
-	hideModal();
+	modalClose();
 	break;
     case 37: // left
 	modalPrev();
