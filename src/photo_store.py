@@ -161,11 +161,10 @@ class PhotoStore:
         if c.fetchone() is None:
             print("Removing photo %s" % hsh)
             c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
-            thumb_path = os.path.join(self.thumbs_path, hsh[:2], hsh[2:] + ".jpg")
+            thumb_path = os.path.join(self.thumbs_dir, hsh[:2], hsh[2:] + ".jpg")
             if os.path.isfile(thumb_path):
-                #os.remove(thumb_path)
-                print(thumb_path)
-        self.con.commit()
+                os.remove(thumb_path)
+            self.con.commit()
             
     def update_dir(self, path: str) -> None:
         paths = set()
