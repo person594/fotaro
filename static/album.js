@@ -5,6 +5,10 @@ photoBounds = [];
 rowHeight = 300;
 scrollTimer = 500;
 loadedPhotoElements = {};
+// load all photos one screen-height above the viewport
+loadAbove = 1;
+// and three screen-heights below
+loadBelow = 3;
 
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -35,14 +39,15 @@ modalIndex = -1
 
 // Modal Functions
 
-function modalShow(hash) {
-    modalIndex = photos.indexOf(hash)
+function modalShow(idx) {
+    modalIndex = idx;
+    var hash = photoList[idx][0];
     modal.style.display = "block";
     modalPlaceholderImg.style.display = "block";
     modalPlaceholderImg.src = "/thumb/" + hash
     modalImg.style.display = "none";
     modalImg.src = "/photo/" + hash;
-    location.hash = "photo" + modalIndex;
+    location.hash = "photo" + idx;
     modalImg.onload = function() {
 	modalPlaceholderImg.style.display = "none";
 	modalImg.style.display = "block";
@@ -58,16 +63,16 @@ function modalPrev(){
 	return
     if (modalIndex >= 1) {
 	--modalIndex;
-	modalShow(photos[modalIndex])
+	modalShow(modalIndex)
     }
 }
 
 function modalNext(){
     if (modal.style.display == "none")
 	return
-    if (modalIndex >= 0 && modalIndex < photos.length - 1) {
+    if (modalIndex >= 0 && modalIndex < photoList.length - 1) {
 	++modalIndex;
-	modalShow(photos[modalIndex])
+	modalShow(modalIndex)
     }
 }
 
@@ -93,7 +98,7 @@ function loadPhoto(idx) {
     var a = document.createElement("a");
     a.href = "#photo" + idx
     a.onclick = function() {
-	modalShow(hash);
+	modalShow(idx);
     };
     pe.append(a);
     var img = document.createElement("img");
@@ -107,13 +112,16 @@ function loadPhoto(idx) {
     });
 }
 
-function photosOnScreen() {
+function photosNearScreen() {
     rect = flow.getBoundingClientRect();
     flowHeight = rect.bottom - rect.top;
     lower = -rect.top / flowHeight;
     upper = (window.innerHeight - rect.top) / flowHeight;
     lower = Math.floor(lower * rows.length);
     upper = Math.ceil(upper * rows.length);
+    nRows = upper - lower;
+    lower -= loadAbove * nRows;
+    upper += loadBelow * nRows;
     onScreen = []
     for (var r = lower; r <= upper; ++r) {
 	if (r < 0 || r >= rows.length) {
@@ -128,7 +136,7 @@ function photosOnScreen() {
 }
 
 function loadChunk() {
-    onScreen = photosOnScreen();
+    onScreen = photosNearScreen();
     onScreen.forEach(function(idx) {
 	loadPhoto(idx);
     });
