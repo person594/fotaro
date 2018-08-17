@@ -36,6 +36,13 @@ modalImg = document.getElementById("modalImg")
 modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
 modalCloseButton = document.getElementById("modalClose");
 
+sidebarButtonView = document.getElementById("sidebarButtonView");
+sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
+sidebarButtons = {
+    "view": sidebarButtonView,
+    "select": sidebarButtonSelect
+};
+
 modalIndex = -1
 
 // Modal Functions
@@ -101,6 +108,42 @@ function hashChangeHook() {
     }
 }
 
+function photoClickHook(idx) {
+    switch (currentMode) {
+    case "view":
+	modalShow(idx);
+	break;
+    case "select":
+	togglePhotoSelection(idx);
+	break;
+    }
+}
+
+function selectPhoto(idx) {
+    pe = loadedPhotoElements[idx];
+    pe.classList.add("photoElementSelected");
+}
+
+function deselectPhoto(idx) {
+    pe = loadedPhotoElements[idx];
+    pe.classList.remove("photoElementSelected");
+}
+
+function deselectAllPhotos() {
+    for (idx in loadedPhotoElements) {
+	deselectPhoto(idx);
+    }
+}
+
+function togglePhotoSelection(idx) {
+    pe = loadedPhotoElements[idx];
+    if (pe.classList.contains("photoElementSelected")) {
+	pe.classList.remove("photoElementSelected");
+    } else {
+	pe.classList.add("photoElementSelected");
+    }
+}
+
 function loadPhoto(idx) {
     if (idx < 0 || idx >= photoList.length || idx in loadedPhotoElements) {
 	return Promise.resolve();
@@ -111,9 +154,8 @@ function loadPhoto(idx) {
     pe.id = "photo" + idx;
     pe.classList.add("photoElement");
     var a = document.createElement("a");
-    a.href = "#" + idx
     a.onclick = function() {
-	modalShow(idx);
+	photoClickHook(idx);
     };
     pe.append(a);
     var img = document.createElement("img");
@@ -165,9 +207,6 @@ function flowRows() {
     var rowWidth = 0;
     var y = 0;
     photoList.forEach(function(hwh, i) {
-	if (i == 69)  {
-	    debugger;
-	}
 	var hash = hwh[0];
 	var w = hwh[1];
 	var h = hwh[2];
@@ -233,6 +272,23 @@ function positionPhotoElement(pe) {
     pe.style.width = bounds[2];
     pe.style.height = bounds[3];
 }
+
+currentMode = ""
+function setMode(newMode) {
+    if (newMode == currentMode) {
+	return;
+    }
+    for (var mode in sidebarButtons) {
+	button = sidebarButtons[mode];
+	button.classList.remove("sidebarButtonSelected");
+    }
+    sidebarButtons[newMode].classList.add("sidebarButtonSelected");
+
+    deselectAllPhotos();
+    currentMode = newMode;
+}
+
+setMode("view");
 
 document.onkeyup = function(e) {
     var key = e.keyCode ? e.keyCode : e.which;

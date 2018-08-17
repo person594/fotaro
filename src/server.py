@@ -1,7 +1,9 @@
 import sys
 import os
 import json
+import mimetypes
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
 
 from photo_store import PhotoStore
  
@@ -16,7 +18,10 @@ def run(db_path):
                 with open(path, "rb") as f:
                     contents = f.read()
                 self.send_response(200)
-                self.send_header('Content-type','text/html')
+                mime, _ = mimetypes.guess_type(path)
+                if mime is None:
+                    mime = "application/octet-stream"
+                self.send_header('Content-type', mime)
                 self.end_headers()
                 self.wfile.write(contents)
             else:
