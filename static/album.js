@@ -34,6 +34,7 @@ flow = document.getElementById('flow');
 modal = document.getElementById("modal")
 modalImg = document.getElementById("modalImg")
 modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
+modalCloseButton = document.getElementById("modalClose");
 
 modalIndex = -1
 
@@ -47,7 +48,8 @@ function modalShow(idx) {
     modalPlaceholderImg.src = "/thumb/" + hash
     modalImg.style.display = "none";
     modalImg.src = "/photo/" + hash;
-    location.hash = "photo" + idx;
+    window.location.hash = idx;
+    modalCloseButton.parentElement.href = "#" + idx;
     modalImg.onload = function() {
 	modalPlaceholderImg.style.display = "none";
 	modalImg.style.display = "block";
@@ -86,6 +88,19 @@ function scrollHook(e) {
     });
 }
 
+function scrollToImage(idx) {
+    bounds = photoBounds[idx];
+    imgCenterY = bounds[1] + 0.5*bounds[3] + flow.offsetTop;
+    window.scrollTo(0, imgCenterY - window.innerHeight/2);
+}
+
+function hashChangeHook() {
+    idx = Number(window.location.hash.substring(1));
+    if (idx == idx) {
+	scrollToImage(idx);
+    }
+}
+
 function loadPhoto(idx) {
     if (idx < 0 || idx >= photoList.length || idx in loadedPhotoElements) {
 	return Promise.resolve();
@@ -96,7 +111,7 @@ function loadPhoto(idx) {
     pe.id = "photo" + idx;
     pe.classList.add("photoElement");
     var a = document.createElement("a");
-    a.href = "#photo" + idx
+    a.href = "#" + idx
     a.onclick = function() {
 	modalShow(idx);
     };
@@ -234,8 +249,6 @@ document.onkeyup = function(e) {
     } 
 }
 
-//document.body.onscroll = scrollHook;
-
 if (document.URL.indexOf("?") < 0) {
     listName = "all"
 } else {
@@ -243,6 +256,7 @@ if (document.URL.indexOf("?") < 0) {
 }
 
 document.body.onscroll = scrollHook;
+document.body.onhashchange = hashChangeHook;
 
 getJSON("/list/" + listName).then(function(list) {
     photoList = list;
