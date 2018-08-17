@@ -1,7 +1,10 @@
 chunkSize = 50;
 photoList = [];
+rows = [];
+photoBounds = [];
 rowHeight = 300;
-chunkLoadCooldown = 2000;
+scrollTimer = 500;
+loadedPhotoElements = {};
 
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -15,7 +18,13 @@ var getJSON = function(url, callback) {
     });
 };
 
-scrollHookActive = true;
+function wait(timeout) {
+    return new Promise(function(resolve, reject) {
+	setTimeout(resolve, timeout);
+    });
+}
+
+
 
 flow = document.getElementById('flow');
 modal = document.getElementById("modal")
@@ -23,6 +32,8 @@ modalImg = document.getElementById("modalImg")
 modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
 
 modalIndex = -1
+
+// Modal Functions
 
 function modalShow(hash) {
     modalIndex = photos.indexOf(hash)
@@ -60,170 +71,144 @@ function modalNext(){
     }
 }
 
-
+lastScroll = new Date();
 function scrollHook(e) {
-    if (!scrollHookActive){
-	return
-    }
-    scrollHookActive = false;
-    loadChunk().then(function() {
-	scrollHookActive = true;
-    });
-}
-
-function generatePhotoElements() {
-    photoList.forEach(function(l, i) {
-	hash = l[0];
-	var div = document.createElement("div");
-	div.id = "photo" + i
-	div.classList.add("photoElement");
-	var a = document.createElement("a");
-	a.href = "#photo" + i
-	a.onclick = function() {
-	    modalShow(hash);
-	};
-	div.append(a);
-	var img = document.createElement("img");
-	//img.src = "/thumb/" + hash
-	a.append(img);
-	flow.append(div);
+    lastScroll = new Date();
+    wait(scrollTimer).then(function() {
+	if (new Date() - lastScroll > 0.9*scrollTimer) {
+	    loadChunk();
+	}
     });
 }
 
 function loadPhoto(idx) {
-    if (idx < 0 || idx >= photoList.length) {
+    if (idx < 0 || idx >= photoList.length || idx in loadedPhotoElements) {
 	return Promise.resolve();
     }
     var hwh = photoList[idx];
     var hash = hwh[0];
-    var photoElement = document.getElementById("photo" + idx);
-    img = photoElement.children[0].children[0];
-    img.src = "/thumb/" + hash;
-    return new Promise(function(resolve, reject) {
-	img.onload = resolve;
-    });
-}
-
-function searchForVisiblePhoto() {
-    lower = 0;
-    upper = photoList.length;
-    while (lower < upper) {
-	console.log(lower, upper)
-	idx = Math.floor((lower + upper) / 2);
-	pe = document.getElementById("photo" + idx);
-	rect = pe.getBoundingClientRect();
-	if (rect.bottom < 0) {
-	    lower = idx;
-	} else if (rect.top > (window.innerHeight)) {
-	    upper = idx;
-	} else {
-	    return idx;
-	}
-    }
-    return null;
-}
-
-function loadChunk() {
-    center = searchForVisiblePhoto();
-    radius = Math.floor(chunkSize / 2);
-    promises = [loadPhoto(center)]
-    for (var d = 1; d < radius; ++d) {
-	promises.push(loadPhoto(center + d));
-	promises.push(loadPhoto(center - d));
-    }
-    return new Promise(function(resolve, reject) {
-	setTimeout(resolve, chunkLoadCooldown);
-    });
-    //return Promise.all(promises)
-}
-
-/*
-function loadMorePhotos(n) {
-    upper = Math.min(photos.length, nLoaded + n)
-    promises = []
-    while (nLoaded < upper) {
-	promises.push(addPhotoToFlow(photos[nLoaded++]));
-    }
-    return Promise.all(promises);
-}
-
-n_photos_added = 0
-function addPhotoToFlow(hash) {
-    var div = document.createElement("div");
-    div.id = "photo" + n_photos_added
-    div.classList.add("photoElement");
+    var pe = document.createElement("div");
+    pe.id = "photo" + idx;
+    pe.classList.add("photoElement");
     var a = document.createElement("a");
-    a.href = "#photo" + n_photos_added
+    a.href = "#photo" + idx
     a.onclick = function() {
 	modalShow(hash);
     };
-    div.append(a);
-    var img = document.createElement("img")
+    pe.append(a);
+    var img = document.createElement("img");
     img.src = "/thumb/" + hash
-    a.append(img)
-    flow.append(div);
-    ++n_photos_added;
+    a.append(img);
+    loadedPhotoElements[idx] = pe;
     return new Promise(function(resolve, reject) {
 	img.onload = resolve;
-    }).then(reflow);
-}
-*/
-function reflow() {
-    console.log("reflow started")
-    var flowWidth = flow.clientWidth - 10;
-    photoElements = []
-    while (flow.childElementCount > 0) {
-	child = flow.children[0]
-	if (child.className == 'photoElement') {
-	    photoElements.push(child);
-	}
-	child.remove();
-    }
-    var row = []
-    var rowWidth = 0
-    photoList.forEach(function(hwh, i) {
-	hash = hwh[0]
-	w = hwh[1]
-	h = hwh[2]
-	photoElement = photoElements[i]
-	var aspectRatio = w/h
-	img = photoElement.children[0].children[0]
-	img.height = rowHeight
-	img.width = rowHeight * aspectRatio
-	var nextWidth = rowWidth + img.width;
-	var prevBadness = Math.abs(Math.log(rowWidth / flowWidth));
-	var nextBadness = Math.abs(Math.log(nextWidth / flowWidth));
-	if (nextBadness < prevBadness) {
-	    row.push(photoElement)
-	    rowWidth = nextWidth
-	    ++i;
-	} else {
-	    rowClientWidth = 0
-	    row.forEach(function(photoElement) {
-		flow.append(photoElement)
-		img = photoElement.children[0].children[0]
-		img.height = rowHeight;
-
-		rowClientWidth += photoElement.clientWidth
-	    });
-	    ratio = flowWidth / rowClientWidth
-	    row.forEach(function(photoElement) {
-		img = photoElement.children[0].children[0]
-		img.width *= ratio;
-	    });
-	    flow.append(document.createElement("br"));
-	    row = [photoElement];
-	    rowWidth = img.width
-	}
+    }).then(function() {
+	positionPhotoElement(pe)
     });
+}
 
-    ratio = flowWidth / rowWidth;
-    if (ratio < 1.25) {
-	row.forEach(function(img) {
-	    img.width *= ratio;
+function photosOnScreen() {
+    rect = flow.getBoundingClientRect();
+    flowHeight = rect.bottom - rect.top;
+    lower = -rect.top / flowHeight;
+    upper = (window.innerHeight - rect.top) / flowHeight;
+    lower = Math.floor(lower * rows.length);
+    upper = Math.ceil(upper * rows.length);
+    onScreen = []
+    for (var r = lower; r <= upper; ++r) {
+	if (r < 0 || r >= rows.length) {
+	    continue;
+	}
+	row = rows[r];
+	row.forEach(function(hwhi) {
+	    onScreen.push(hwhi[3]);
 	});
     }
+    return onScreen;
+}
+
+function loadChunk() {
+    onScreen = photosOnScreen();
+    onScreen.forEach(function(idx) {
+	loadPhoto(idx);
+    });
+}
+
+function flowRows() {
+    console.log("rowflow started");
+    var flowWidth = flow.clientWidth;
+    rows = [];
+    var row = [];
+    var rowWidth = 0;
+    var y = 0;
+    photoList.forEach(function(hwh, i) {
+	if (i == 69)  {
+	    debugger;
+	}
+	var hash = hwh[0];
+	var w = hwh[1];
+	var h = hwh[2];
+	var scaledWidth = w * rowHeight / h;
+	var nextRowWidth = rowWidth + scaledWidth;
+	var prevBadness = Math.abs(Math.log(rowWidth / flowWidth));
+	var nextBadness = Math.abs(Math.log(nextRowWidth / flowWidth));
+	if (nextBadness > prevBadness) {
+	    rows.push(row);
+	    widthScale = flowWidth / rowWidth;
+	    var x = 0;
+	    row.forEach(function(hwhi) {
+		var w = hwhi[1];
+		var h = hwhi[2];
+		var scaledWidth = widthScale * w * rowHeight / h
+		photoBounds.push([x, y, scaledWidth, rowHeight])
+		x += scaledWidth;
+	    });
+	    y += rowHeight;
+	    row = [hwh.concat([i])];
+	    rowWidth = scaledWidth;
+	} else {
+	    row.push(hwh.concat([i]))
+	    rowWidth = nextRowWidth;
+	}
+    });
+    rows.push(row);
+    x = 0;
+    row.forEach(function(hwhi) {
+	w = hwhi[1];
+	h = hwhi[2];
+	scaledWidth = w * rowHeight / h
+	photoBounds.push([x, y, scaledWidth, rowHeight])
+	x += scaledWidth;
+    });
+
+    console.log("rowflow done");
+}
+
+function reflow() {
+    console.log("reflow started")
+    flowRows();
+    // Remove everything from the flow
+    while (flow.hasChildNodes()) {
+	flow.removeChild(flow.lastChild);
+    }
+    // resize the flow
+    flow.style.height = rowHeight * rows.length;
     console.log("reflowed " + photoList.length + " photos.")
+    for (var idx in loadedPhotoElements) {
+	pe = loadedPhotoElements[idx];
+	positionPhotoElement(pe);
+    }
+}
+
+function positionPhotoElement(pe) {
+    pe.remove();
+    flow.append(pe);
+    idx = Number(pe.id.substring(5))
+    bounds = photoBounds[idx]
+    pe.style.left = bounds[0];
+    pe.style.top = bounds[1];
+    pe.style.width = bounds[2];
+    pe.style.height = bounds[3];
 }
 
 document.onkeyup = function(e) {
@@ -241,16 +226,20 @@ document.onkeyup = function(e) {
     } 
 }
 
+//document.body.onscroll = scrollHook;
+
 if (document.URL.indexOf("?") < 0) {
     listName = "all"
 } else {
     listName = document.URL.split("?")[1]
 }
 
+document.body.onscroll = scrollHook;
+
 getJSON("/list/" + listName).then(function(list) {
     photoList = list;
-    generatePhotoElements();
     reflow();
-}).then(loadChunk);
+    loadChunk();
+});
 
 
