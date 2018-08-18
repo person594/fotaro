@@ -62,6 +62,7 @@ modalCloseButton = document.getElementById("modalClose");
 
 sidebarButtonView = document.getElementById("sidebarButtonView");
 sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
+sidebarButtonDeelect = document.getElementById("sidebarButtonDeelect");
 sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
 sidebarButtons = {
     "view": sidebarButtonView,
@@ -153,6 +154,7 @@ function selectPhoto(idx) {
     pe = loadedPhotoElements[idx];
     pe.classList.add("photoElementSelected");
     selectedPhotos.push(idx);
+    sidebarButtonDeselect.classList.remove('sidebarButtonHidden')
 }
 
 function deselectPhoto(idx) {
@@ -161,6 +163,9 @@ function deselectPhoto(idx) {
     i = selectedPhotos.indexOf(idx);
     if (i >= 0) {
 	selectedPhotos.splice(i, 1);
+    }
+    if (selectedPhotos.length == 0) {
+	sidebarButtonDeselect.classList.add('sidebarButtonHidden');
     }
 }
 
@@ -339,7 +344,6 @@ function setMode(newMode) {
     }
     sidebarButtons[newMode].classList.add("sidebarButtonSelected");
 
-    deselectAllPhotos();
     currentMode = newMode;
 }
 
@@ -350,6 +354,9 @@ function sidebarButtonHook(button) {
 	break;
     case sidebarButtonSelect:
 	setMode("select");
+	break;
+    case sidebarButtonDeselect:
+	deselectAllPhotos();
 	break;
     case sidebarButtonDownload:
 	if (selectedPhotos.length == 0) {

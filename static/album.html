@@ -25,13 +25,17 @@
 	  box-sizing: border-box;
 	  width: 4vw;
 	  height: 4vw;
-	  margin-top: 50%;
+	  margin-top: 25%;
+	  margin-bottom:25%;
 	  opacity: 0.6;
 	  transition: 0.2s;
 	  cursor: pointer;
 	  border-radius: 10%;
+	  /*
 	  border-top: solid;
 	  border-left: solid;
+	 */
+	  border: solid;
 	  border-width: 2px;
 	  border-color: rgba(0,0,0,0);
       }
@@ -39,16 +43,35 @@
       .sidebarButton:hover{
 	  opacity: 1;
 	  background-color: rgb(224,224,224);
-	  border-color: rgb(196,196,196);
+	  border-color: rgb(196,196,196) rgb(240,240,240) rgb(240,240,240)  rgb(196,196,196);
       }
 
       .sidebarButtonSelected{
-	  /*
-	  background-color: rgb(224,224,224);
-	  border-color: rgb(196,196,196);
-	  */
 	  opacity: 1;
 	  stroke: indigo;
+      }
+
+      .sidebarButtonDeselect{
+	  position: relative;
+	  width: 2vw;
+	  height: 2vw;
+	  left: 1vw;
+	  margin-top: -30%;
+	  margin-bottom:-20%;
+	  text-align: right;
+	  border-radius: 100%;
+	  z-index: 1;
+	  
+      }
+
+      .sidebarButtonHidden{
+	  opacity: 0;
+	  visibility: hidden;
+      }
+
+      .sidebarButtonDeselect:hover{
+	  stroke: red;
+	  border-color: rgb(196,196,196);
       }
 
       
@@ -175,6 +198,9 @@
       </svg>
       <svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
 	<use xlink:href="icons/feather-sprite.svg#check-square"></use>
+      </svg>
+      <svg id="sidebarButtonDeselect" class="sidebarButton sidebarButtonDeselect sidebarButtonHidden" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	<use xlink:href="icons/feather-sprite.svg#x-circle"></use>
       </svg>
       <!--
       <svg id="sidebarButtonAdd" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
