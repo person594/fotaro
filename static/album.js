@@ -30,7 +30,29 @@ function wait(timeout) {
     });
 }
 
+//https://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
+function post(path, params, method) {
+    method = method || "post"; 
 
+    var form = document.createElement("form");
+    form.setAttribute("method", method);
+    form.setAttribute("action", path);
+
+    for(var key in params) {
+        if(params.hasOwnProperty(key)) {
+            var hiddenField = document.createElement("input");
+            hiddenField.setAttribute("type", "hidden");
+            hiddenField.setAttribute("name", key);
+            hiddenField.setAttribute("value", params[key]);
+
+            form.appendChild(hiddenField);
+        }
+    }
+
+    document.body.appendChild(form);
+    form.submit();
+    form.remove()
+}
 
 flow = document.getElementById('flow');
 modal = document.getElementById("modal")
@@ -40,9 +62,11 @@ modalCloseButton = document.getElementById("modalClose");
 
 sidebarButtonView = document.getElementById("sidebarButtonView");
 sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
+sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
 sidebarButtons = {
     "view": sidebarButtonView,
-    "select": sidebarButtonSelect
+    "select": sidebarButtonSelect,
+    "download": sidebarButtonDownload
 };
 
 modalIndex = -1
@@ -118,6 +142,9 @@ function photoClickHook(idx) {
     case "select":
 	togglePhotoSelection(idx);
 	break;
+    case "download":
+	downloadPhoto(idx);
+	break;
     }
 }
 
@@ -138,8 +165,8 @@ function deselectPhoto(idx) {
 }
 
 function deselectAllPhotos() {
-    for (idx in loadedPhotoElements) {
-	deselectPhoto(idx);
+    while (selectedPhotos.length > 0) {
+	deselectPhoto(selectedPhotos[0]);
     }
 }
 
@@ -150,6 +177,26 @@ function togglePhotoSelection(idx) {
     } else {
 	selectPhoto(idx);
     }
+}
+
+function downloadPhotos(indices) {
+    if (indices.length == 1) {
+	return downloadPhoto(indices[0]);
+    }
+    hashes = []
+    indices.forEach(function(idx) {
+	hashes.push(photoList[idx][0]);
+    });
+    post("/download.tar.gz", {"hashes": hashes.join(",")});
+}
+
+function downloadPhoto(idx) {
+    var hwh = photoList[idx];
+    var hash = hwh[0];
+    a = document.createElement("a");
+    a.href = "/download/" + hash;
+    a.click();
+    a.remove();
 }
 
 function loadPhoto(idx) {
@@ -294,6 +341,25 @@ function setMode(newMode) {
 
     deselectAllPhotos();
     currentMode = newMode;
+}
+
+function sidebarButtonHook(button) {
+    switch(button) {
+    case sidebarButtonView:
+	setMode("view");
+	break;
+    case sidebarButtonSelect:
+	setMode("select");
+	break;
+    case sidebarButtonDownload:
+	if (selectedPhotos.length == 0) {
+	    setMode("download");
+	    break;
+	} else {
+	    downloadPhotos(selectedPhotos);
+	    deselectAllPhotos();
+	}
+    }
 }
 
 setMode("view");

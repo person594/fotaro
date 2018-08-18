@@ -17,21 +17,38 @@
       }
 
       .sidebarButton{
+	  stroke: currentColor;
+	  stroke-width: 2;
+	  stroke-linecap: round;
+	  stroke-linejoin: round;
+	  fill: none;
+	  box-sizing: border-box;
 	  width: 4vw;
 	  height: 4vw;
 	  margin-top: 50%;
 	  opacity: 0.6;
 	  transition: 0.2s;
 	  cursor: pointer;
+	  border-radius: 10%;
+	  border-top: solid;
+	  border-left: solid;
+	  border-width: 2px;
+	  border-color: rgba(0,0,0,0);
       }
 
       .sidebarButton:hover{
 	  opacity: 1;
+	  background-color: rgb(224,224,224);
+	  border-color: rgb(196,196,196);
       }
 
       .sidebarButtonSelected{
+	  /*
+	  background-color: rgb(224,224,224);
+	  border-color: rgb(196,196,196);
+	  */
 	  opacity: 1;
-	  fill: indigo;
+	  stroke: indigo;
       }
 
       
@@ -153,12 +170,23 @@
 
     </div>
     <div id="sidebar" class="sidebar">
-      <svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 8 8" onclick="setMode('view')">
-	<use xlink:href="icons/open-iconic.svg#eye"></use>
+      <svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	<use xlink:href="icons/feather-sprite.svg#maximize"></use>
       </svg>
-      <svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 8 8" onclick="setMode('select')">
-	<use xlink:href="icons/open-iconic.svg#check"></use>
+      <svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	<use xlink:href="icons/feather-sprite.svg#check-square"></use>
       </svg>
+      <!--
+      <svg id="sidebarButtonAdd" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	<use xlink:href="icons/feather-sprite.svg#plus-square"></use>
+      </svg>
+      -->
+
+      <svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	<use xlink:href="icons/feather-sprite.svg#download"></use>
+      </svg>
+
+
     </div>
     <div id="flow" class="flow">
     </div>

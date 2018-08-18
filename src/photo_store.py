@@ -3,7 +3,9 @@ import io
 import time
 from datetime import datetime
 import hashlib
-from typing import List, Optional, Any, Tuple, overload
+import mimetypes
+import tarfile
+from typing import List, Optional, Any, Tuple, IO, overload
 
 from PIL import Image
 import sqlite3 as lite
@@ -56,6 +58,9 @@ class PhotoStore:
         db_file = os.path.join(data_dir, "album.db")
         self.thumbs_dir = os.path.join(data_dir, "thumbs")
         self.thumbnail_height = 350
+        self.preferred_extensions = {
+            ".jpeg", ".png", ".gif", ".bmp", ".svg"
+        }
         self.con = lite.connect(db_file)
         c = self.con.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
@@ -95,6 +100,31 @@ class PhotoStore:
         with open(path, "rb") as f:
             contents = f.read()
         return contents, mime
+
+    def get_photos_tgz(self, hashes: List[str]) -> Tuple[bytes, str]:
+        bio =  io.BytesIO()
+        with tarfile.open(mode="w:gz", fileobj=bio) as tar:
+            for hsh in hashes:
+                ext = self.get_photo_extension(hsh)
+                pm = self.hash_to_path_mime(hsh)
+                if pm is not None:
+                    path, _ = pm
+                    tar.add(path, arcname=hsh+ext)
+        return bio.getvalue(), "application/gzip"
+        
+
+    def get_photo_extension(self, hsh: str):
+        pm = self.hash_to_path_mime(hsh)
+        if pm is None:
+            return ""
+        _, mime = pm;
+        guessed_extensions = mimetypes.guess_all_extensions(mime);
+        for ext in guessed_extensions:
+            if ext in self.preferred_extensions:
+                return ext
+        guessed_extensions.append("");
+        return guessed_extensions[0]
+        
 
     def get_thumbnail(self, hsh: str) -> Optional[Tuple[bytes, str]]:
         thumb_dir = os.path.join(self.thumbs_dir, hsh[:2])
