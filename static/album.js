@@ -10,6 +10,8 @@ loadAbove = 1;
 // and three screen-heights below
 loadBelow = 3;
 
+selectedPhotos = [];
+
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -120,13 +122,19 @@ function photoClickHook(idx) {
 }
 
 function selectPhoto(idx) {
+    deselectPhoto(idx);
     pe = loadedPhotoElements[idx];
     pe.classList.add("photoElementSelected");
+    selectedPhotos.push(idx);
 }
 
 function deselectPhoto(idx) {
     pe = loadedPhotoElements[idx];
     pe.classList.remove("photoElementSelected");
+    i = selectedPhotos.indexOf(idx);
+    if (i >= 0) {
+	selectedPhotos.splice(i, 1);
+    }
 }
 
 function deselectAllPhotos() {
@@ -138,9 +146,9 @@ function deselectAllPhotos() {
 function togglePhotoSelection(idx) {
     pe = loadedPhotoElements[idx];
     if (pe.classList.contains("photoElementSelected")) {
-	pe.classList.remove("photoElementSelected");
+	deselectPhoto(idx);
     } else {
-	pe.classList.add("photoElementSelected");
+	selectPhoto(idx);
     }
 }
 

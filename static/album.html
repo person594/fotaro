@@ -41,6 +41,7 @@
 	  cursor: pointer;
 	  border: solid;
 	  border-color: white;
+	  box-sizing: border-box;
       }
 
       div.photoElement:hover{
@@ -49,6 +50,7 @@
 
       div.photoElementSelected{
 	  background-color: indigo;
+	  filter: brightness(120%);
       }
 
       div.photoElementSelected:hover{
@@ -58,8 +60,8 @@
       div.photoElement img{
 	  margin: 3px;
 	  object-fit: cover;
-	  width: calc(100% - 8px);
-	  height: calc(100% - 8px);
+	  width: calc(100% - 6px);
+	  height: calc(100% - 6px);
 	  transition: 0.2s;
       }
 
