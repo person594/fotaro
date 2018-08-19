@@ -4,6 +4,7 @@ rows = [];
 photoBounds = [];
 rowHeight = 300;
 scrollTimer = 500;
+reflowTimer = 125;
 loadedPhotoElements = {};
 // load all photos one screen-height above the viewport
 loadAbove = 1;
@@ -11,6 +12,7 @@ loadAbove = 1;
 loadBelow = 3;
 
 selectedPhotos = [];
+screenCenterPhoto = 0;
 
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -46,7 +48,7 @@ function post(path, params, method) {
             hiddenField.setAttribute("value", params[key]);
 
             form.appendChild(hiddenField);
-        }
+v        }
     }
 
     document.body.appendChild(form);
@@ -114,15 +116,16 @@ function modalNext(){
 
 lastScroll = new Date();
 function scrollHook(e) {
+    updateScreenCenterPhoto();
     lastScroll = new Date();
     wait(scrollTimer).then(function() {
-	if (new Date() - lastScroll > 0.9*scrollTimer) {
+	if (new Date() - lastScroll >= scrollTimer) {
 	    loadChunk();
 	}
     });
 }
 
-function scrollToImage(idx) {
+function scrollToPhoto(idx) {
     bounds = photoBounds[idx];
     imgCenterY = bounds[1] + 0.5*bounds[3] + flow.offsetTop;
     window.scrollTo(0, imgCenterY - window.innerHeight/2);
@@ -131,7 +134,7 @@ function scrollToImage(idx) {
 function hashChangeHook() {
     idx = Number(window.location.hash.substring(1));
     if (idx == idx) {
-	scrollToImage(idx);
+	scrollToPhoto(idx);
     }
 }
 
@@ -229,6 +232,21 @@ function loadPhoto(idx) {
     });
 }
 
+function updateScreenCenterPhoto() {
+    rect = flow.getBoundingClientRect();
+    flowHeight = rect.bottom - rect.top;
+    if (flowHeight == 0) {
+	screenCenterPhoto = 0;
+    } else{
+	center = (window.innerHeight / 2 - rect.top) / flowHeight;
+	centerRow = rows[Math.floor(center * rows.length)]
+	i = Math.floor(centerRow.length / 2)
+	screenCenterPhoto = centerRow[i][3];
+    }
+    //el = document.getElementById("photo" + screenCenterPhoto);
+    //el.classList.add("photoElementSelected");
+}
+
 function photosNearScreen() {
     rect = flow.getBoundingClientRect();
     flowHeight = rect.bottom - rect.top;
@@ -263,6 +281,7 @@ function flowRows() {
     console.log("rowflow started");
     var flowWidth = flow.clientWidth;
     rows = [];
+    photoBounds = [];
     var row = [];
     var rowWidth = 0;
     var y = 0;
@@ -384,6 +403,19 @@ document.onkeyup = function(e) {
 	modalNext();
 	break;
     } 
+}
+
+lastResize = new Date();
+centerAfterResize = 0
+window.onresize = function() {
+    lastResize = new Date();
+    centerAfterResize = screenCenterPhoto
+    wait(reflowTimer).then(function() {
+	if (new Date() - lastResize >= reflowTimer) {
+	    reflow();
+	    scrollToPhoto(centerAfterResize);
+	}
+    });;
 }
 
 if (document.URL.indexOf("?") < 0) {

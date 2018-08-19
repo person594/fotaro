@@ -43,11 +43,11 @@
       .sidebarButton:hover{
 	  opacity: 1;
 	  background-color: rgb(224,224,224);
-	  border-color: rgb(196,196,196) rgb(240,240,240) rgb(240,240,240)  rgb(196,196,196);
+	  border-color: rgb(196,196,196) rgba(0,0,0,0) rgba(0,0,0,0)  rgb(196,196,196);
       }
 
       .sidebarButtonSelected{
-	  opacity: 1;
+v	  opacity: 1;
 	  stroke: indigo;
       }
 
@@ -169,7 +169,7 @@
       }
 
 </style>
-    <title>Album Title</title>
+    <title>Fotaro</title>
   </head>
   <body>
     <div id="modal" class="modal">
@@ -193,29 +193,36 @@
 
     </div>
     <div id="sidebar" class="sidebar">
-      <svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
-	<use xlink:href="icons/feather-sprite.svg#maximize"></use>
-      </svg>
-      <svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
-	<use xlink:href="icons/feather-sprite.svg#check-square"></use>
-      </svg>
-      <svg id="sidebarButtonDeselect" class="sidebarButton sidebarButtonDeselect sidebarButtonHidden" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
-	<use xlink:href="icons/feather-sprite.svg#x-circle"></use>
-      </svg>
+      <div title="View">
+	<svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/feather-sprite.svg#maximize"></use>
+	</svg>
+      </div>
+      <div title="Select">
+	<svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/feather-sprite.svg#check-square"></use>
+	</svg>
+      </div>
+      <div title="Deselect all">
+	<svg id="sidebarButtonDeselect" class="sidebarButton sidebarButtonDeselect sidebarButtonHidden" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/feather-sprite.svg#x-circle"></use>
+	</svg>
+      </div>
       <!--
       <svg id="sidebarButtonAdd" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
 	<use xlink:href="icons/feather-sprite.svg#plus-square"></use>
       </svg>
       -->
-
-      <svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
-	<use xlink:href="icons/feather-sprite.svg#download"></use>
-      </svg>
+      <div title="Download">
+	<svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/feather-sprite.svg#download"></use>
+	</svg>
+      </div>
 
 
     </div>
     <div id="flow" class="flow">
     </div>
-    <script src="album.js"></script>
+    <script src="view.js"></script>
   </body>
 </html>

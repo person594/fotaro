@@ -55,7 +55,7 @@ def str_escape(s: str) -> str:
     
 class PhotoStore:
     def __init__(self, data_dir: str) -> None:
-        db_file = os.path.join(data_dir, "album.db")
+        db_file = os.path.join(data_dir, "fotaro.db")
         self.thumbs_dir = os.path.join(data_dir, "thumbs")
         self.thumbnail_height = 350
         self.preferred_extensions = {
