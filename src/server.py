@@ -11,7 +11,13 @@ def run(db_path):
     ps = PhotoStore(db_path)
     class RequestHandler(BaseHTTPRequestHandler):
         def serve_static(self, path):
+            print(path)
             path = os.path.normpath(path)[1:]
+            print(path)
+            if path == "":
+                path = "view.html"
+            if "." not in path:
+                path = path + ".html"
             path = os.path.join("../static/", path)
             print(path)
             if os.path.isfile(path):
