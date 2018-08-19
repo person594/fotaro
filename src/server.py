@@ -7,8 +7,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from photo_store import PhotoStore
  
-def run(db_path):
-    ps = PhotoStore(db_path)
+def run_server(data_dir):
+    ps = PhotoStore(data_dir)
     class RequestHandler(BaseHTTPRequestHandler):
         def serve_static(self, path):
             print(path)
@@ -125,6 +125,3 @@ def run(db_path):
     server_address = ('127.0.0.1', 8081)
     httpd = HTTPServer(server_address, RequestHandler)
     httpd.serve_forever()
- 
- 
-run(sys.argv[1])
