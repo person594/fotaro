@@ -9,8 +9,8 @@ from multiprocessing import Process
 
 from docopt import docopt
 
-from server import run_server;
-from overseer import run_overseer;
+from server import run_server
+from overseer import run_overseer
 
 
 if __name__ == "__main__":
@@ -19,4 +19,4 @@ if __name__ == "__main__":
     photo_dir = args["<photo-dir>"]
     p_overseer = Process(target=run_overseer, args=(data_dir, photo_dir))
     p_overseer.start()
-    run_server(data_dir);
+    run_server(data_dir)

@@ -5,17 +5,10 @@ from datetime import datetime
 import hashlib
 import mimetypes
 import tarfile
-from typing import List, Optional, Any, Tuple, IO, overload
+from typing import List, Optional, Any, Tuple, IO, Iterator, overload, cast
 
 from PIL import Image
 import sqlite3 as lite
-
-def timed(f, *args):
-    before = time.time()
-    result = f(*args)
-    after = time.time()
-    print("%s: %.4f seconds" % (f.__name__, after - before))
-    return result
 
 def hash_file(path: str) -> str:
     m = hashlib.sha256()
@@ -24,7 +17,7 @@ def hash_file(path: str) -> str:
     m.update(contents)
     return m.digest().hex()
 
-def image_timestamp(im: Image) -> Optional[int]:
+def image_timestamp(im: Image.Image) -> Optional[int]:
     try:
         exif = im._getexif()
     except AttributeError:
@@ -36,7 +29,7 @@ def image_timestamp(im: Image) -> Optional[int]:
     else:
         return None
 
-def image_mime_type(im: Image):
+def image_mime_type(im: Image.Image) -> str:
     return Image.MIME[im.format]
     
 
@@ -67,30 +60,31 @@ class PhotoStore:
         c.execute("CREATE TABLE IF NOT EXISTS Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
         self.con.commit()
 
-    def list_all_photos(self):
+    def list_all_photos(self) -> List[Tuple[str, int, int]]:
         c = self.con.cursor()
         c.execute("SELECT Hash, Width, Height FROM Photos WHERE Timestamp IS NOT NULL ORDER BY Timestamp DESC")
-        return list(c.fetchall())
+        result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
+        return list(result)
 
-    def get_list(self, list_name):
+    def get_list(self, list_name: str) -> List[Tuple[str, int, int]]:
         if list_name == "all":
             return self.list_all_photos()
         else:
             return []
 
-    def _insert(self, table: str, *args: Any):
+    def _insert(self, table: str, *args: Any) -> None:
         c = self.con.cursor()
         args_str = ", ".join([escape(arg) for arg in args])
         c.execute("REPLACE INTO %s VALUES(%s)" % (table, args_str))
         self.con.commit()
 
-    def hash_to_path_mime(self, hsh: str) -> Optional[str]:
+    def hash_to_path_mime(self, hsh: str) -> Optional[Tuple[str, str]]:
         c = self.con.cursor()
         c.execute("SELECT Path, Mime from Files WHERE Hash=%s" % escape(hsh))
         r = c.fetchone()
         if r is None:
             return None
-        return r
+        return cast(Tuple[str, str], r)
 
     def get_photo(self, hsh: str) -> Optional[Tuple[bytes, str]]:
         pm = self.hash_to_path_mime(hsh)
@@ -113,7 +107,7 @@ class PhotoStore:
         return bio.getvalue(), "application/gzip"
         
 
-    def get_photo_extension(self, hsh: str):
+    def get_photo_extension(self, hsh: str) -> str:
         pm = self.hash_to_path_mime(hsh)
         if pm is None:
             return ""
@@ -139,8 +133,8 @@ class PhotoStore:
             path, _ = pm
             im = Image.open(path)
             w, h = im.size
-            f = self.thumbnail_height / h
-            resized = timed(im.resize, (int(w*f), int(h*f)), Image.ANTIALIAS)
+            s = self.thumbnail_height / h
+            resized = im.resize((int(w*s), int(h*s)), Image.LANCZOS)
             resized.save(thumb_path, "JPEG")
 
         with open(thumb_path, "rb") as f:
@@ -152,7 +146,7 @@ class PhotoStore:
     def db_file_last_modified(self, path: str) -> Optional[str]:
         c = self.con.cursor()
         c.execute("SELECT Modified FROM Files WHERE Path=%s" % escape(path))
-        r = c.fetchone()
+        r = cast(Optional[Tuple[str]], c.fetchone())
         if r is not None:
             return r[0]
         else:

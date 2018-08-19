@@ -2,12 +2,14 @@ import sys
 import os
 import json
 import mimetypes
-import urllib
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
+
+
 
 from photo_store import PhotoStore
  
-def run_server(data_dir):
+def run_server(data_dir: str) -> None:
     ps = PhotoStore(data_dir)
     class RequestHandler(BaseHTTPRequestHandler):
         def serve_static(self, path):
