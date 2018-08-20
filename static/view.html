@@ -47,7 +47,7 @@
       }
 
       .sidebarButtonSelected{
-v	  opacity: 1;
+	  opacity: 1;
 	  stroke: indigo;
       }
 
@@ -86,15 +86,17 @@ v	  opacity: 1;
 
       div.photoElement:hover{
 	  background-color: gray;
+	  filter: none;
       }
 
       div.photoElementSelected{
 	  background-color: indigo;
-	  filter: brightness(120%);
+	  filter: none;
       }
-
+      
       div.photoElementSelected:hover{
 	  background-color: indigo;
+	  filter: brightness(120%);
       }
       
       div.photoElement img{
@@ -123,10 +125,12 @@ v	  opacity: 1;
       }
 
       img.modalImg{
+	  position: absolute;
 	  padding: 20px;
 	  width: calc(100% - 40px);
 	  height: calc(100% - 40px);
 	  object-fit: contain;
+	  transition:.5s;
       }
 
       div.modalPrevButton, div.modalNextButton, div.modalCloseButton{
@@ -168,7 +172,8 @@ v	  opacity: 1;
 	  opacity: 1;
       }
 
-</style>
+    </style>
+    <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>Fotaro</title>
   </head>
   <body>
@@ -183,8 +188,8 @@ v	  opacity: 1;
 	  &lsaquo;
 	</div>
       </a>
-      <img id="modalImg" class="modalImg">
       <img id="modalPlaceholderImg" class="modalImg">
+      <img id="modalImg" class="modalImg">
       <a href="#" onclick="modalNext()">
 	<div id="modalNext" class="modalNextButton">
 	  &rsaquo;

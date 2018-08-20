@@ -48,7 +48,7 @@ function post(path, params, method) {
             hiddenField.setAttribute("value", params[key]);
 
             form.appendChild(hiddenField);
-v        }
+        }
     }
 
     document.body.appendChild(form);
@@ -80,15 +80,13 @@ function modalShow(idx) {
     modalIndex = idx;
     var hash = photoList[idx][0];
     modal.style.display = "block";
-    modalPlaceholderImg.style.display = "block";
     modalPlaceholderImg.src = "/thumb/" + hash
-    modalImg.style.display = "none";
+    modalImg.style.opacity = 0;
     modalImg.src = "/photo/" + hash;
     window.location.hash = idx;
     modalCloseButton.parentElement.href = "#" + idx;
     modalImg.onload = function() {
-	modalPlaceholderImg.style.display = "none";
-	modalImg.style.display = "block";
+	modalImg.style.opacity = 1;
     }
 }
 
@@ -152,8 +150,13 @@ function photoClickHook(idx) {
     }
 }
 
+greyOutNonSelectedRule = "div.photoElement{filter: grayscale(75%) contrast(50%);}"
+
 function selectPhoto(idx) {
     deselectPhoto(idx);
+    if (selectedPhotos.length == 0) {
+	document.styleSheets[0].insertRule(greyOutNonSelectedRule, 0);
+    }
     pe = loadedPhotoElements[idx];
     pe.classList.add("photoElementSelected");
     selectedPhotos.push(idx);
@@ -166,9 +169,10 @@ function deselectPhoto(idx) {
     i = selectedPhotos.indexOf(idx);
     if (i >= 0) {
 	selectedPhotos.splice(i, 1);
-    }
-    if (selectedPhotos.length == 0) {
-	sidebarButtonDeselect.classList.add('sidebarButtonHidden');
+	if (selectedPhotos.length == 0) {
+	    sidebarButtonDeselect.classList.add('sidebarButtonHidden');
+	    document.styleSheets[0].deleteRule(0);
+	}
     }
 }
 
