@@ -2,9 +2,9 @@ import sys
 import os
 import json
 import mimetypes
+import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
-
 
 
 from photo_store import PhotoStore
@@ -86,7 +86,7 @@ def run_server(data_dir: str) -> None:
                 except ValueError:
                     pass
             elif len(spath) == 3 and spath[1] == "list":
-                list_name = spath[2]
+                list_name = urllib.parse.unquote(spath[2])
                 photo_list = ps.get_list(list_name)
                 response = json.dumps(photo_list)
                 self.send_response(200)
@@ -100,12 +100,11 @@ def run_server(data_dir: str) -> None:
         def do_POST(self):
             path = self.path.rsplit("?", 1)[0]
             length = int(self.headers['Content-Length'])
-            post_data = urllib.parse.parse_qs(self.rfile.read(length).decode('utf-8'))
-            print(post_data)
-
-            if path == "/download.tar.gz":
+            post_data = json.loads(self.rfile.read(length).decode('utf-8'))
+            
+            if path == "/download":
                 try:
-                    hashes = post_data['hashes'][0].split(",")
+                    hashes = post_data['hashes']
                     content, mime = ps.get_photos_tgz(hashes)
                     self.send_response(200)
                     self.send_header('Content-type', mime)
@@ -116,8 +115,17 @@ def run_server(data_dir: str) -> None:
                     pass
                 
             elif path == "/add":
-                ...
-            
+                try:
+                    album_name = post_data['album']
+                    print(album_name)
+                    hashes = post_data['hashes']
+                    print(hashes)
+                    ps.add_photos_to_album(hashes, album_name)
+                    self.send_response(201)
+                    self.end_headers()
+                    self.wfile.write(bytes("true", encoding="utf-8"));
+                except KeyError:
+                    pass
 
            
 

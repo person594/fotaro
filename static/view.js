@@ -14,6 +14,12 @@ loadBelow = 3;
 selectedPhotos = [];
 screenCenterPhoto = 0;
 
+albums = [
+    "Test album 1",
+    "Test album B",
+    "Test album with a really really really long album name charlie"
+];
+
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -32,83 +38,151 @@ function wait(timeout) {
     });
 }
 
-//https://stackoverflow.com/questions/133925/javascript-post-request-like-a-form-submit
-function post(path, params, method) {
-    method = method || "post"; 
+function post(path, params, responseType) {
+    responseType = responseType || "text"
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("POST", path, true)
+    xmlhttp.responseType = responseType;
+    var prom = new Promise(function(resolve, reject) {
+	xmlhttp.onreadystatechange = function() {
+	    if (xmlhttp.readyState == 4) {
+		if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
+		    resolve(xmlhttp.response);
+		} else {
+		    reject(xmlhttp.response);
+		}
+	    }
+	};
+    });
+    xmlhttp.send(JSON.stringify(params));
+    return prom;
+}
 
-    var form = document.createElement("form");
-    form.setAttribute("method", method);
-    form.setAttribute("action", path);
-
-    for(var key in params) {
-        if(params.hasOwnProperty(key)) {
-            var hiddenField = document.createElement("input");
-            hiddenField.setAttribute("type", "hidden");
-            hiddenField.setAttribute("name", key);
-            hiddenField.setAttribute("value", params[key]);
-
-            form.appendChild(hiddenField);
-        }
-    }
-
-    document.body.appendChild(form);
-    form.submit();
-    form.remove()
+function downloadBlob(blob, filename) {
+    var a = document.createElement("a");
+    document.body.append(a);
+    a.style.display = "none";
+    url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
 }
 
 flow = document.getElementById('flow');
-modal = document.getElementById("modal")
-modalImg = document.getElementById("modalImg")
-modalPlaceholderImg = document.getElementById("modalPlaceholderImg")
-modalCloseButton = document.getElementById("modalClose");
+
+albumSelectModal = document.getElementById("albumSelectModal");
+albumSelectModalMenu = document.getElementById("albumSelectModalMenu");
+
+viewModal = document.getElementById("viewModal")
+viewModalImg = document.getElementById("viewModalImg")
+viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
+viewModalCloseButton = document.getElementById("viewModalClose");
 
 sidebarButtonView = document.getElementById("sidebarButtonView");
 sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
-sidebarButtonDeelect = document.getElementById("sidebarButtonDeelect");
+sidebarButtonDeselect = document.getElementById("sidebarButtonDeselect");
+sidebarButtonAdd = document.getElementById("sidebarButtonAdd");
 sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
 sidebarButtons = {
     "view": sidebarButtonView,
     "select": sidebarButtonSelect,
+    "add": sidebarButtonAdd,
     "download": sidebarButtonDownload
 };
 
-modalIndex = -1
+function promptAlbum() {
+    albumSelectModal.style.display = "block"
+    while (albumSelectModalMenu.childElementCount > 0) {
+	albumSelectModalMenu.children[0].remove();
+    }
+    return new Promise(function(resolve, reject) {
+	albums.forEach(function(albumName) {
+	    var onclick = function() {
+		albumSelectModal.style.display = "none";
+		resolve(albumName);
+	    };
+	    var mi = document.createElement("div")
+	    mi.classList.add("albumSelectModalMenuItem");
+	    mi.innerHTML = albumName;
+	    mi.onclick = onclick;
+	    albumSelectModalMenu.append(mi);
+	});
+	// New album text field
+	var form = document.createElement("form");
+	var textbox = document.createElement("input");
+	textbox.classList.add("albumSelectModalMenuItem");
+	textbox.classList.add("textbox");
+	textbox.placeholder = "New album"
+	form.append(textbox);
+	form.onsubmit = function() {
+	    albumName = textbox.value;
+	    if (albums.indexOf(albumName) < 0) {
+		albums.push(albumName);
+	    }
+	    albumSelectModal.style.display = "none";
+	    resolve(albumName);
+	}
+	form.action = "javascript:void(0);";
+	albumSelectModalMenu.append(form);
+    });
+}
 
-// Modal Functions
+function flashPhoto(idx) {
+    pe = document.getElementById("photo" + idx);
+    pe.style.transition = "0s";
+    pe.style.filter = "brightness(200%)"
+    wasSelected = pe.classList.contains("photoElementSelected");
+    pe.classList.add("photoElementSelected")
+    wait(0).then(function() {
+	pe.style.transition = ""
+	pe.style.filter = ""
+	if (!wasSelected) {
+	    pe.classList.remove("photoElementSelected");
+	}
+    });
 
-function modalShow(idx) {
-    modalIndex = idx;
+}
+
+
+viewModalIndex = -1
+
+// ViewModal Functions
+
+function viewModalShow(idx) {
+    viewModalIndex = idx;
     var hash = photoList[idx][0];
-    modal.style.display = "block";
-    modalPlaceholderImg.src = "/thumb/" + hash
-    modalImg.style.opacity = 0;
-    modalImg.src = "/photo/" + hash;
+    viewModal.style.display = "block";
+    viewModalPlaceholderImg.src = "/thumb/" + hash
+    viewModalImg.style.opacity = 0;
+    viewModalImg.src = "/photo/" + hash;
     window.location.hash = idx;
-    modalCloseButton.parentElement.href = "#" + idx;
-    modalImg.onload = function() {
-	modalImg.style.opacity = 1;
+    viewModalCloseButton.parentElement.href = "#" + idx;
+    viewModalImg.onload = function() {
+	viewModalImg.style.opacity = 1;
     }
 }
 
-function modalClose() {
-    modal.style.display = "none";
+function viewModalClose() {
+    viewModal.style.display = "none";
 }
 
-function modalPrev(){
-    if (modal.style.display == "none")
+function viewModalPrev(){
+    if (viewModal.style.display == "none")
 	return
-    if (modalIndex >= 1) {
-	--modalIndex;
-	modalShow(modalIndex)
+    if (viewModalIndex >= 1) {
+	--viewModalIndex;
+	viewModalShow(viewModalIndex)
     }
 }
 
-function modalNext(){
-    if (modal.style.display == "none")
+function viewModalNext(){
+    if (viewModal.style.display == "none")
 	return
-    if (modalIndex >= 0 && modalIndex < photoList.length - 1) {
-	++modalIndex;
-	modalShow(modalIndex)
+    if (viewModalIndex >= 0 && viewModalIndex < photoList.length - 1) {
+	++viewModalIndex;
+	viewModalShow(viewModalIndex)
     }
 }
 
@@ -132,20 +206,25 @@ function scrollToPhoto(idx) {
 function hashChangeHook() {
     idx = Number(window.location.hash.substring(1));
     if (idx == idx) {
-	scrollToPhoto(idx);
+ 	scrollToPhoto(idx);
     }
 }
 
 function photoClickHook(idx) {
     switch (currentMode) {
     case "view":
-	modalShow(idx);
+	viewModalShow(idx);
 	break;
     case "select":
 	togglePhotoSelection(idx);
 	break;
     case "download":
+	flashPhoto(idx);
 	downloadPhoto(idx);
+	break;
+    case "add":
+	flashPhoto(idx);
+	addPhotosToAlbum([idx], currentAlbum);
 	break;
     }
 }
@@ -199,7 +278,9 @@ function downloadPhotos(indices) {
     indices.forEach(function(idx) {
 	hashes.push(photoList[idx][0]);
     });
-    post("/download.tar.gz", {"hashes": hashes.join(",")});
+    post("/download", {"hashes": hashes}, "blob").then(function(blob) {
+	downloadBlob(blob, "download.tar.gz");
+    });
 }
 
 function downloadPhoto(idx) {
@@ -209,6 +290,14 @@ function downloadPhoto(idx) {
     a.href = "/download/" + hash;
     a.click();
     a.remove();
+}
+
+function addPhotosToAlbum(indices, albumName) {
+    hashes = []
+    indices.forEach(function(idx) {
+	hashes.push(photoList[idx][0]);
+    });
+    post("/add", {"album": albumName, "hashes": hashes});
 }
 
 function loadPhoto(idx) {
@@ -357,6 +446,7 @@ function positionPhotoElement(pe) {
 }
 
 currentMode = ""
+currentAlbum = ""
 function setMode(newMode) {
     if (newMode == currentMode) {
 	return;
@@ -381,6 +471,17 @@ function sidebarButtonHook(button) {
     case sidebarButtonDeselect:
 	deselectAllPhotos();
 	break;
+    case sidebarButtonAdd:
+	promptAlbum().then(function(albumName) {
+	    currentAlbum = albumName;
+	    if (selectedPhotos.length == 0) {
+		setMode("add");
+	    } else {
+		addPhotosToAlbum(selectedPhotos, currentAlbum)
+		deselectAllPhotos();
+	    }
+	});
+	break;
     case sidebarButtonDownload:
 	if (selectedPhotos.length == 0) {
 	    setMode("download");
@@ -398,13 +499,13 @@ document.onkeyup = function(e) {
     var key = e.keyCode ? e.keyCode : e.which;
     switch(key) {
     case 27: // esc
-	modalClose();
+	viewModalClose();
 	break;
     case 37: // left
-	modalPrev();
+	viewModalPrev();
 	break
     case 39: // right
-	modalNext();
+	viewModalNext();
 	break;
     } 
 }

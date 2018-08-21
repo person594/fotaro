@@ -1,6 +1,10 @@
 <html>
   <head>
     <style>
+      * {
+	  font-family: Helvetica Neue,Helvetica,Arial,sans-serif; 
+      }
+
       body{
 	  overflow-y: scroll;
 	  overflow-x: hidden;
@@ -31,10 +35,6 @@
 	  transition: 0.2s;
 	  cursor: pointer;
 	  border-radius: 10%;
-	  /*
-	  border-top: solid;
-	  border-left: solid;
-	 */
 	  border: solid;
 	  border-width: 2px;
 	  border-color: rgba(0,0,0,0);
@@ -55,7 +55,7 @@
 	  position: relative;
 	  width: 2vw;
 	  height: 2vw;
-	  left: 1vw;
+	  left: 1.25vw;
 	  margin-top: -30%;
 	  margin-bottom:-20%;
 	  text-align: right;
@@ -113,6 +113,7 @@
 	  width: 95%;
       }
 
+
       div.modal{
 	  display: none;
 	  position: fixed;
@@ -124,7 +125,7 @@
 	  background-color: rgba(0,0,0,0.8);
       }
 
-      img.modalImg{
+      img.viewModalImg{
 	  position: absolute;
 	  padding: 20px;
 	  width: calc(100% - 40px);
@@ -133,7 +134,7 @@
 	  transition:.5s;
       }
 
-      div.modalPrevButton, div.modalNextButton, div.modalCloseButton{
+      div.viewModalPrevButton, div.viewModalNextButton, div.viewModalCloseButton{
 	  top: 0px;
 	  width: 10%;
 	  height: 100%;
@@ -149,14 +150,15 @@
 	  opacity: 0.5;
       }
 
-      div.modalPrevButton{
+      div.viewModalPrevButton{
+	  left: 0px;
       }
 
-      div.modalNextButton{
+      div.viewModalNextButton{
 	  right: 0px;
       }
 
-      div.modalCloseButton{
+      div.viewModalCloseButton{
 	  left: 0; 
 	  right: 0; 
 	  margin-left: auto; 
@@ -167,9 +169,40 @@
 	  border-radius: 100%;
       }
 
-      div.modalPrevButton:hover, div.modalNextButton:hover, div.modalCloseButton:hover{
+      div.viewModalPrevButton:hover, div.viewModalNextButton:hover, div.viewModalCloseButton:hover{
 	  background: rgba(0,0,0,0.6);
 	  opacity: 1;
+      }
+
+      div.albumSelectModalMenu {
+	  padding: 1vw;
+	  background: white;
+	  width: 20%;
+	  margin: auto;
+	  margin-top: 10%;
+	  border-radius: 1vw;
+      }
+
+      .albumSelectModalMenuItem{
+	  margin: 5px;
+	  border: solid;
+	  border-radius:5px;
+	  padding: 3px;
+	  border-color: rgba(0,0,0,0);
+	  font-size: large;
+	  white-space: nowrap; 
+	  overflow: hidden;
+	  text-overflow: ellipsis;
+	  cursor: pointer;
+      }
+
+      .albumSelectModalMenuItem:hover{
+	  border-color: rgb(196,196,196) rgba(0,0,0,0) rgba(0,0,0,0)  rgb(196,196,196);
+	  background-color: rgb(224,224,224);
+      }
+
+      div.textbox {
+	  color: black;
       }
 
     </style>
@@ -177,25 +210,32 @@
     <title>Fotaro</title>
   </head>
   <body>
-    <div id="modal" class="modal">
-      <a href="#" onclick="modalClose()">
-	<div id="modalClose" class="modalCloseButton">
+    <div id="viewModal" class="modal">
+      <a href="#" onclick="viewModalClose()">
+	<div id="viewModalClose" class="viewModalCloseButton">
 	  &times;
 	</div>
       </a>
-      <a href="#" onclick="modalPrev()">
-	<div id="modalPrev" class="modalPrevButton">
+      <a href="#" onclick="viewModalPrev()">
+	<div id="viewModalPrev" class="viewModalPrevButton">
 	  &lsaquo;
 	</div>
       </a>
-      <img id="modalPlaceholderImg" class="modalImg">
-      <img id="modalImg" class="modalImg">
-      <a href="#" onclick="modalNext()">
-	<div id="modalNext" class="modalNextButton">
+      <img id="viewModalPlaceholderImg" class="viewModalImg">
+      <img id="viewModalImg" class="viewModalImg">
+      <a href="#" onclick="viewModalNext()">
+	<div id="viewModalNext" class="viewModalNextButton">
 	  &rsaquo;
 	</div>
       </a>
-
+    </div>
+    <div id="albumSelectModal" class="modal">
+      <div id="albumSelectModalMenu" class="albumSelectModalMenu">
+	<div class="albumSelectModalMenuItem">foo</div>
+	<div class="albumSelectModalMenuItem">bar</div>
+	<div class="albumSelectModalMenuItem">This is a really long album name to check the overflow behavior of this menu.</div>
+	<div class="albumSelectModalMenuItem">New album...</div>
+      </div>
     </div>
     <div id="sidebar" class="sidebar">
       <div title="View">
@@ -213,11 +253,11 @@
 	  <use xlink:href="icons/feather-sprite.svg#x-circle"></use>
 	</svg>
       </div>
-      <!--
-      <svg id="sidebarButtonAdd" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
-	<use xlink:href="icons/feather-sprite.svg#plus-square"></use>
-      </svg>
-      -->
+      <div Title= "Add to album">
+	<svg id="sidebarButtonAdd" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/feather-sprite.svg#plus-square"></use>
+	</svg>
+      </div>
       <div title="Download">
 	<svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 8 8" onclick="sidebarButtonHook(this)">
 	  <use xlink:href="icons/feather-sprite.svg#download"></use>
