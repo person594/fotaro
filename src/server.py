@@ -94,6 +94,14 @@ def run_server(data_dir: str) -> None:
                 self.end_headers()
                 self.wfile.write(bytes(response, "utf8"))
                 return
+            elif len(spath) == 2 and spath[1] == "albums":
+                albums = ps.get_albums()
+                response = json.dumps(albums)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(bytes(response, "utf8"))
+                return
 
             self.serve_static(path)
 

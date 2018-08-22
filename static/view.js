@@ -15,9 +15,6 @@ selectedPhotos = [];
 screenCenterPhoto = 0;
 
 albums = [
-    "Test album 1",
-    "Test album B",
-    "Test album with a really really really long album name charlie"
 ];
 
 var getJSON = function(url, callback) {
@@ -92,12 +89,20 @@ sidebarButtons = {
     "download": sidebarButtonDownload
 };
 
-function promptAlbum() {
+//This is kind of hacky -- we reassign this function in promptAlbum
+albumSelectModalClose = function() {};
+
+function promptAlbum(newAlbumOption) {
     albumSelectModal.style.display = "block"
     while (albumSelectModalMenu.childElementCount > 0) {
 	albumSelectModalMenu.children[0].remove();
     }
     return new Promise(function(resolve, reject) {
+	albumSelectModalClose = function() {
+	    albumSelectModal.style.display = "none";
+	    albumSelectModalClose = function() {};
+	    resolve(null);
+	}
 	albums.forEach(function(albumName) {
 	    var onclick = function() {
 		albumSelectModal.style.display = "none";
@@ -110,22 +115,24 @@ function promptAlbum() {
 	    albumSelectModalMenu.append(mi);
 	});
 	// New album text field
-	var form = document.createElement("form");
-	var textbox = document.createElement("input");
-	textbox.classList.add("albumSelectModalMenuItem");
-	textbox.classList.add("textbox");
-	textbox.placeholder = "New album"
-	form.append(textbox);
-	form.onsubmit = function() {
-	    albumName = textbox.value;
-	    if (albums.indexOf(albumName) < 0) {
-		albums.push(albumName);
+	if (newAlbumOption) {
+	    var form = document.createElement("form");
+	    var textbox = document.createElement("input");
+	    textbox.classList.add("albumSelectModalMenuItem");
+	    textbox.classList.add("textbox");
+	    textbox.placeholder = "New album"
+	    form.append(textbox);
+	    form.onsubmit = function() {
+		albumName = textbox.value;
+		if (albums.indexOf(albumName) < 0) {
+		    albums.push(albumName);
+		}
+		albumSelectModal.style.display = "none";
+		resolve(albumName);
 	    }
-	    albumSelectModal.style.display = "none";
-	    resolve(albumName);
+	    form.action = "javascript:void(0);";
+	    albumSelectModalMenu.append(form);
 	}
-	form.action = "javascript:void(0);";
-	albumSelectModalMenu.append(form);
     });
 }
 
@@ -168,7 +175,7 @@ function viewModalClose() {
     viewModal.style.display = "none";
 }
 
-function viewModalPrev(){
+function viewModalPrev() {
     if (viewModal.style.display == "none")
 	return
     if (viewModalIndex >= 1) {
@@ -177,7 +184,7 @@ function viewModalPrev(){
     }
 }
 
-function viewModalNext(){
+function viewModalNext() {
     if (viewModal.style.display == "none")
 	return
     if (viewModalIndex >= 0 && viewModalIndex < photoList.length - 1) {
@@ -472,7 +479,10 @@ function sidebarButtonHook(button) {
 	deselectAllPhotos();
 	break;
     case sidebarButtonAdd:
-	promptAlbum().then(function(albumName) {
+	promptAlbum(true).then(function(albumName) {
+	    if (!albumName) {
+		return;
+	    }
 	    currentAlbum = albumName;
 	    if (selectedPhotos.length == 0) {
 		setMode("add");
@@ -500,6 +510,7 @@ document.onkeyup = function(e) {
     switch(key) {
     case 27: // esc
 	viewModalClose();
+	albumSelectModalClose();
 	break;
     case 37: // left
 	viewModalPrev();
@@ -520,7 +531,7 @@ window.onresize = function() {
 	    reflow();
 	    scrollToPhoto(centerAfterResize);
 	}
-    });;
+    });
 }
 
 if (document.URL.indexOf("?") < 0) {
@@ -532,8 +543,16 @@ if (document.URL.indexOf("?") < 0) {
 document.body.onscroll = scrollHook;
 document.body.onhashchange = hashChangeHook;
 
-getJSON("/list/" + listName).then(function(list) {
-    photoList = list;
+loadPromise = Promise.all([
+    getJSON("/list/" + listName).then(function(list) {
+	photoList = list
+    }),
+    getJSON("/albums").then(function(albumNames) {
+	albums = albumNames;
+    })
+])
+
+loadPromise.then(function() {
     reflow();
     loadChunk();
 });

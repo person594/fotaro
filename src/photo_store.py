@@ -101,7 +101,12 @@ class PhotoStore:
                 return list(result)
             else:
                 return []
-        
+
+    def get_albums(self) -> List[str]:
+        c = self.con.cursor();
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Album::%'")
+        return [name[len("Album::"):] for (name,) in c.fetchall()]
+            
     def add_photos_to_album(self, hashes: List[str], album_name: str) -> None:
         album_identifier = escape_identifier("Album::" + album_name);
         print("album_identifier");
