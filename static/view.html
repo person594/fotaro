@@ -45,10 +45,6 @@
 	  margin-bottom: 2px;
 	  margin-left: 0px;
 	  margin-right: 0px;
-	  /*
-	  background-color: rgb(224,224,224);
-	  border-color: rgb(196,196,196) rgba(0,0,0,0) rgba(0,0,0,0)  rgb(196,196,196);
-	  */
       }
 
       .sidebarButtonSelected{
@@ -142,31 +138,31 @@
 	  transition:.5s;
       }
 
-      div.viewModalPrevButton, div.viewModalNextButton, div.modalCloseButton{
+      .viewModalPrevButton, .viewModalNextButton, .modalCloseButton{
 	  top: 0px;
-	  width: 10%;
+	  width: 5%;
 	  height: 100%;
 	  position: absolute;
 	  z-index: 3;
 	  display: flex;
 	  justify-content: center; /* align horizontal */
 	  align-items: center; /* align vertical */
-	  color: white;
+	  fill: white;
 	  font-size: 75px;
 	  font-weight: 900;
 	  transition: 0.2s;
-	  opacity: 0.5;
+	  opacity: 0.3;
       }
 
-      div.viewModalPrevButton{
+      .viewModalPrevButton{
 	  left: 0px;
       }
 
-      div.viewModalNextButton{
+      .viewModalNextButton{
 	  right: 0px;
       }
 
-      div.modalCloseButton{
+      .modalCloseButton{
 	  left: 0; 
 	  right: 0; 
 	  margin-left: auto; 
@@ -177,7 +173,7 @@
 	  border-radius: 100%;
       }
 
-      div.viewModalPrevButton:hover, div.viewModalNextButton:hover, div.modalCloseButton:hover{
+      .viewModalPrevButton:hover, .viewModalNextButton:hover, .modalCloseButton:hover{
 	  background: rgba(0,0,0,0.6);
 	  opacity: 1;
       }
@@ -188,13 +184,11 @@
 	  width: 20%;
 	  margin: auto;
 	  margin-top: 10%;
-	  border-radius: 1vw;
       }
 
       .albumSelectModalMenuItem{
 	  margin: 5px;
 	  border: solid;
-	  border-radius:5px;
 	  padding: 3px;
 	  border-color: rgba(0,0,0,0);
 	  font-size: large;
@@ -202,11 +196,12 @@
 	  overflow: hidden;
 	  text-overflow: ellipsis;
 	  cursor: pointer;
+	  opacity: 0.6;
+	  color: black;
       }
 
       .albumSelectModalMenuItem:hover{
-	  border-color: rgb(196,196,196) rgba(0,0,0,0) rgba(0,0,0,0)  rgb(196,196,196);
-	  background-color: rgb(224,224,224);
+	  opacity: 1;
       }
 
       div.textbox {
@@ -220,21 +215,21 @@
   <body>
     <div id="viewModal" class="modal">
       <a href="#" onclick="viewModalClose()">
-	<div id="viewModalClose" class="modalCloseButton">
-	  &times;
-	</div>
+	<svg id="viewModalClose" class="modalCloseButton" viewBox="0 0 24 24">
+	  <use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+	</svg>
       </a>
       <a href="#" onclick="viewModalPrev()">
-	<div id="viewModalPrev" class="viewModalPrevButton">
-	  &lsaquo;
-	</div>
+	<svg id="viewModalPrev" class="viewModalPrevButton" viewBox="0 0 24 24">
+	  <use xlink:href="icons/sharp-chevron_left-24px.svg#Sharp"></use>
+	</svg>	
       </a>
       <img id="viewModalPlaceholderImg" class="viewModalImg">
       <img id="viewModalImg" class="viewModalImg">
       <a href="#" onclick="viewModalNext()">
-	<div id="viewModalNext" class="viewModalNextButton">
-	  &rsaquo;
-	</div>
+	<svg id="viewModalNext" class="viewModalNextButton" viewBox="0 0 24 24">
+	  <use xlink:href="icons/sharp-chevron_right-24px.svg#Sharp"></use>
+	</svg>
       </a>
     </div>
     <div id="albumSelectModal" class="modal">
@@ -274,6 +269,11 @@
       <div title="Download">
 	<svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
 	  <use xlink:href="icons/sharp-get_app-24px.svg#Sharp"></use>
+	</svg>
+      </div>
+      <div title="Albums">
+	<svg id="sidebarButtonAlbums" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/sharp-collections-24px.svg#Sharp"></use>
 	</svg>
       </div>
 

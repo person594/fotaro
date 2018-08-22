@@ -82,7 +82,8 @@ sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
 sidebarButtonDeselect = document.getElementById("sidebarButtonDeselect");
 sidebarButtonAdd = document.getElementById("sidebarButtonAdd");
 sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
-sidebarButtons = {
+sidebarButtonAlbums = document.getElementById("sidebarButtonAlbums");
+modeButtons = {
     "view": sidebarButtonView,
     "select": sidebarButtonSelect,
     "add": sidebarButtonAdd,
@@ -92,7 +93,7 @@ sidebarButtons = {
 //This is kind of hacky -- we reassign this function in promptAlbum
 albumSelectModalClose = function() {};
 
-function promptAlbum(newAlbumOption) {
+function prompt(options, customText) {
     albumSelectModal.style.display = "block"
     while (albumSelectModalMenu.childElementCount > 0) {
 	albumSelectModalMenu.children[0].remove();
@@ -103,7 +104,7 @@ function promptAlbum(newAlbumOption) {
 	    albumSelectModalClose = function() {};
 	    resolve(null);
 	}
-	albums.forEach(function(albumName) {
+	options.forEach(function(albumName) {
 	    var onclick = function() {
 		albumSelectModal.style.display = "none";
 		resolve(albumName);
@@ -115,13 +116,21 @@ function promptAlbum(newAlbumOption) {
 	    albumSelectModalMenu.append(mi);
 	});
 	// New album text field
-	if (newAlbumOption) {
+	if (customText) {
 	    var form = document.createElement("form");
 	    var textbox = document.createElement("input");
 	    textbox.classList.add("albumSelectModalMenuItem");
 	    textbox.classList.add("textbox");
-	    textbox.placeholder = "New album"
+	    textbox.placeholder = customText
+	    textbox.value = customText
 	    form.append(textbox);
+	    var textboxClicked = false
+	    textbox.onclick = function() {
+		if (!textboxClicked) {
+		    textbox.value = ""
+		    textboxClicked = true;
+		}
+	    };
 	    form.onsubmit = function() {
 		albumName = textbox.value;
 		if (albums.indexOf(albumName) < 0) {
@@ -458,11 +467,11 @@ function setMode(newMode) {
     if (newMode == currentMode) {
 	return;
     }
-    for (var mode in sidebarButtons) {
-	button = sidebarButtons[mode];
+    for (var mode in modeButtons) {
+	button = modeButtons[mode];
 	button.classList.remove("sidebarButtonSelected");
     }
-    sidebarButtons[newMode].classList.add("sidebarButtonSelected");
+    modeButtons[newMode].classList.add("sidebarButtonSelected");
 
     currentMode = newMode;
 }
@@ -479,7 +488,7 @@ function sidebarButtonHook(button) {
 	deselectAllPhotos();
 	break;
     case sidebarButtonAdd:
-	promptAlbum(true).then(function(albumName) {
+	prompt(albums, "New Album").then(function(albumName) {
 	    if (!albumName) {
 		return;
 	    }
@@ -500,7 +509,16 @@ function sidebarButtonHook(button) {
 	    downloadPhotos(selectedPhotos);
 	    deselectAllPhotos();
 	}
+	break;
+    case sidebarButtonAlbums:
+	prompt(["all"].concat(albums), false).then(function(albumName) {
+	    if (albumName) {
+		location = "/?" + albumName;
+	    }
+	});
     }
+
+    
 }
 
 setMode("view");
