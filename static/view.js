@@ -90,32 +90,45 @@ modeButtons = {
     "download": sidebarButtonDownload
 };
 
-//This is kind of hacky -- we reassign this function in promptAlbum
-promptModalClose = function() {};
-
-function prompt(options, customText) {
-    promptModal.style.display = "block"
-    while (promptModalMenu.childElementCount > 0) {
-	promptModalMenu.children[0].remove();
-    }
+function prompt(text, options, customText) {
+    var modal = promptModal.cloneNode(true);
+    var menu = modal.querySelector(".promptModalMenu")
+    var closeButton = modal.querySelector(".modalCloseButton")
+    var textDiv = document.createElement("div");
+    textDiv.classList.add("promptText")
+    textDiv.innerHTML = text;
+    menu.append(textDiv);
+    document.body.append(modal);
+    modal.style.display = "block";
+    var oldKeyUpHook = document.onkeyup;
     return new Promise(function(resolve, reject) {
-	promptModalClose = function() {
-	    promptModal.style.display = "none";
-	    promptModalClose = function() {};
+	closeButton.onclick = function() {
 	    resolve(null);
-	}
-	options.forEach(function(albumName) {
+	};
+	document.onkeyup = function(e) {
+	    var key = e.keyCode ? e.keyCode : e.which;
+	    if (key == 27) {
+		resolve(null);
+	    }
+	};
+	options.forEach(function(option) {
+	    if (Array.isArray(option)) {
+		var value = option[0];
+		var display = option[1];
+	    } else {
+		var value = option
+		var display = option
+	    }
 	    var onclick = function() {
-		promptModal.style.display = "none";
-		resolve(albumName);
+		resolve(value);
 	    };
 	    var mi = document.createElement("div")
 	    mi.classList.add("promptModalMenuItem");
-	    mi.innerHTML = albumName;
+	    mi.innerHTML = display;
 	    mi.onclick = onclick;
-	    promptModalMenu.append(mi);
+	    menu.append(mi);
 	});
-	// New album text field
+
 	if (customText) {
 	    var form = document.createElement("form");
 	    var textbox = document.createElement("input");
@@ -132,18 +145,19 @@ function prompt(options, customText) {
 		}
 	    };
 	    form.onsubmit = function() {
-		albumName = textbox.value;
-		if (albums.indexOf(albumName) < 0) {
-		    albums.push(albumName);
-		}
-		promptModal.style.display = "none";
-		resolve(albumName);
+		resolve(textbox.value);
 	    }
 	    form.action = "javascript:void(0);";
-	    promptModalMenu.append(form);
+	    menu.append(form);
 	}
+    }).then(function(selection) {
+	modal.remove();
+	document.onkeyup = oldKeyUpHook;
+	return selection;
     });
 }
+
+//function promptWithDeletion()
 
 function flashPhoto(idx) {
     pe = document.getElementById("photo" + idx);
@@ -488,9 +502,12 @@ function sidebarButtonHook(button) {
 	deselectAllPhotos();
 	break;
     case sidebarButtonAdd:
-	prompt(albums, "New Album").then(function(albumName) {
+	prompt("Add to album", albums, "New Album").then(function(albumName) {
 	    if (!albumName) {
 		return;
+	    }
+	    if (albums.indexOf(albumName) < 0) {
+		albums.push(albumName);
 	    }
 	    currentAlbum = albumName;
 	    if (selectedPhotos.length == 0) {
@@ -511,7 +528,7 @@ function sidebarButtonHook(button) {
 	}
 	break;
     case sidebarButtonAlbums:
-	prompt(["all"].concat(albums), false).then(function(albumName) {
+	prompt("Go to album", [["all", "<i>All photos</i>"]].concat(albums), false).then(function(albumName) {
 	    if (albumName) {
 		location = "/?" + albumName;
 	    }
@@ -528,7 +545,6 @@ document.onkeyup = function(e) {
     switch(key) {
     case 27: // esc
 	viewModalClose();
-	promptModalClose();
 	break;
     case 37: // left
 	viewModalPrev();

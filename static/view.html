@@ -148,6 +148,7 @@
 	  font-weight: 900;
 	  transition: 0.2s;
 	  opacity: 0.3;
+	  cursor: pointer;
       }
 
       .viewModalPrevButton{
@@ -180,6 +181,13 @@
 	  width: 20%;
 	  margin: auto;
 	  margin-top: 10%;
+      }
+
+      div.promptText{
+	  text-align: center;
+	  font-size: large;
+	  padding-bottom: 4px;
+	  border-bottom: solid;
       }
 
       .promptModalMenuItem{
@@ -229,13 +237,11 @@
       </a>
     </div>
     <div id="promptModal" class="modal">
-      <a href="#" onclick="promptModalClose()">
-      	<div id="promptModalClose" class="modalCloseButton">
-	  <svg id="viewModalClose" class="modalCloseButton" viewBox="0 0 24 24">
-	    <use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
-	  </svg>
+      <div id="promptModalClose" class="modalCloseButton">
+	<svg id="viewModalClose" class="modalCloseButton" viewBox="0 0 24 24">
+	  <use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+	</svg>
 	</div>
-      </a>
       <div id="promptModalMenu" class="promptModalMenu">
       </div>
     </div>
