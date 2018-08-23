@@ -17,7 +17,7 @@ def run_server(data_dir: str) -> None:
             path = os.path.normpath(path)[1:]
             print(path)
             if path == "":
-                path = "view.html"
+                path = "photos.html"
             if "." not in path:
                 path = path + ".html"
             path = os.path.join("../static/", path)
@@ -123,12 +123,21 @@ def run_server(data_dir: str) -> None:
                     pass
                 
             elif path == "/add":
+                 try:
+                    album_name = post_data['album']
+                    hashes = post_data['hashes']
+                    ps.add_photos_to_album(hashes, album_name)
+                    self.send_response(201)
+                    self.end_headers()
+                    self.wfile.write(bytes("true", encoding="utf-8"));
+                 except KeyError:
+                    pass
+
+            elif path == "/remove":
                 try:
                     album_name = post_data['album']
-                    print(album_name)
                     hashes = post_data['hashes']
-                    print(hashes)
-                    ps.add_photos_to_album(hashes, album_name)
+                    ps.remove_photos_from_album(hashes, album_name)
                     self.send_response(201)
                     self.end_headers()
                     self.wfile.write(bytes("true", encoding="utf-8"));

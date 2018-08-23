@@ -70,9 +70,10 @@ class PhotoStore:
         result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
         return list(result)
 
-    def get_list(self, list_name: str) -> List[Tuple[str, int, int]]:
+    # returns: list of (hash, width, height), editable
+    def get_list(self, list_name: str) -> Tuple[List[Tuple[str, int, int]], bool]:
         if list_name == "all":
-            return self.list_all_photos()
+            return self.list_all_photos(), False
         else:
             album_name = escape("Album::" + list_name)
             album_identifier = escape_identifier("Album::" + list_name)
@@ -82,9 +83,9 @@ class PhotoStore:
             if r is not None:
                 c.execute("SELECT Photos.Hash, Width, Height FROM %s INNER JOIN Photos ON %s.Hash = Photos.Hash ORDER BY Photos.Timestamp" % (album_identifier, album_identifier))
                 result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
-                return list(result)
+                return list(result), True
             else:
-                return []
+                return [], True
 
     def get_albums(self) -> List[str]:
         c = self.con.cursor();
@@ -93,11 +94,17 @@ class PhotoStore:
             
     def add_photos_to_album(self, hashes: List[str], album_name: str) -> None:
         album_identifier = escape_identifier("Album::" + album_name);
-        print("album_identifier");
         c = self.con.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS %s(Hash TEXT NOT NULL PRIMARY KEY)" % album_identifier)
         for hsh in hashes:
             self._insert(album_identifier, hsh)
+        self.con.commit()
+
+    def remove_photos_from_album(self, hashes: List[str], album_name: str) -> None:
+        album_identifier = escape_identifier("Album::" + album_name);
+        c = self.con.cursor()
+        for hsh in hashes:
+            c.execute("DELETE FROM %s WHERE Hash=%s" % (album_identifier, escape(hsh)))
         self.con.commit()
 
     def _insert(self, table: str, *args: Any) -> None:

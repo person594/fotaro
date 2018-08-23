@@ -1,5 +1,6 @@
 chunkSize = 50;
 photoList = [];
+editable = false;
 rows = [];
 photoBounds = [];
 rowHeight = 300;
@@ -16,6 +17,7 @@ screenCenterPhoto = 0;
 
 albums = [
 ];
+listName = null;
 
 var getJSON = function(url, callback) {
     var xhr = new XMLHttpRequest();
@@ -81,14 +83,20 @@ sidebarButtonView = document.getElementById("sidebarButtonView");
 sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
 sidebarButtonDeselect = document.getElementById("sidebarButtonDeselect");
 sidebarButtonAdd = document.getElementById("sidebarButtonAdd");
+sidebarButtonRemove = document.getElementById("sidebarButtonRemove");
 sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
 sidebarButtonAlbums = document.getElementById("sidebarButtonAlbums");
 modeButtons = {
     "view": sidebarButtonView,
     "select": sidebarButtonSelect,
     "add": sidebarButtonAdd,
+    "remove": sidebarButtonRemove,
     "download": sidebarButtonDownload
 };
+
+editableOnlyButtons = [
+    sidebarButtonRemove
+];
 
 function prompt(text, options, customText) {
     var modal = promptModal.cloneNode(true);
@@ -252,8 +260,10 @@ function photoClickHook(idx) {
 	break;
     case "add":
 	flashPhoto(idx);
-	addPhotosToAlbum([idx], currentAlbum);
+	addPhotosToAlbum([idx], addAlbum);
 	break;
+    case "remove":
+	removePhotosFromAlbum([idx]);
     }
 }
 
@@ -321,11 +331,45 @@ function downloadPhoto(idx) {
 }
 
 function addPhotosToAlbum(indices, albumName) {
-    hashes = []
+    var hashes = []
     indices.forEach(function(idx) {
 	hashes.push(photoList[idx][0]);
     });
     post("/add", {"album": albumName, "hashes": hashes});
+}
+
+function removePhotosFromAlbum(indices) {
+    var hashes = []
+    indices.forEach(function(idx) {
+	hashes.push(photoList[idx][0]);
+    });
+    post("/remove", {"album": listName, "hashes": hashes});
+    var newPhotoList = [];
+    var indexMap = []
+    var newIndex = 0;
+    photoList.forEach(function(photo, i) {
+	// if this photo was not to be removed
+	if (indices.indexOf(i) < 0) {
+	    newPhotoList.push(photo);
+	    indexMap.push(newIndex++);
+	} else {
+	    indexMap.push(-1);
+	}
+    });
+    var newLoadedPhotoElements = {}
+    for (var idx in loadedPhotoElements) {
+	var pe = loadedPhotoElements[idx];
+	var newIdx = indexMap[idx];
+	if (newIdx >= 0) {
+	    newLoadedPhotoElements[newIdx] = loadedPhotoElements[idx];
+	    pe.id = "photo" + newIdx;
+	} else {
+	    pe.remove();
+	}
+    }
+    photoList = newPhotoList;
+    loadedPhotoElements = newLoadedPhotoElements;
+    reflow();
 }
 
 function loadPhoto(idx) {
@@ -339,7 +383,7 @@ function loadPhoto(idx) {
     pe.classList.add("photoElement");
     var a = document.createElement("a");
     a.onclick = function() {
-	photoClickHook(idx);
+	photoClickHook(Number(pe.id.substring(5)));
     };
     pe.append(a);
     var img = document.createElement("img");
@@ -474,7 +518,7 @@ function positionPhotoElement(pe) {
 }
 
 currentMode = ""
-currentAlbum = ""
+addAlbum = ""
 function setMode(newMode) {
     if (newMode == currentMode) {
 	return;
@@ -507,14 +551,23 @@ function sidebarButtonHook(button) {
 	    if (albums.indexOf(albumName) < 0) {
 		albums.push(albumName);
 	    }
-	    currentAlbum = albumName;
+	    addAlbum = albumName;
 	    if (selectedPhotos.length == 0) {
 		setMode("add");
 	    } else {
-		addPhotosToAlbum(selectedPhotos, currentAlbum)
+		addPhotosToAlbum(selectedPhotos, addAlbum)
 		deselectAllPhotos();
 	    }
 	});
+	break;
+    case sidebarButtonRemove:
+	if (selectedPhotos.length == 0) {
+	    setMode("remove");
+	} else {
+	    var selected = selectedPhotos.slice();
+	    deselectAllPhotos();
+	    removePhotosFromAlbum(selected)
+	}
 	break;
     case sidebarButtonDownload:
 	if (selectedPhotos.length == 0) {
@@ -576,8 +629,14 @@ document.body.onscroll = scrollHook;
 document.body.onhashchange = hashChangeHook;
 
 loadPromise = Promise.all([
-    getJSON("/list/" + listName).then(function(list) {
-	photoList = list
+    getJSON("/list/" + listName).then(function(listEditable) {
+	photoList = listEditable[0]
+	editable = listEditable[1]
+	if (!editable) {
+	    editableOnlyButtons.forEach(function(button) {
+		button.style.display = "none";
+	    });
+	}
     }),
     getJSON("/albums").then(function(albumNames) {
 	albums = albumNames;
