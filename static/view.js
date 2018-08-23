@@ -69,8 +69,8 @@ function downloadBlob(blob, filename) {
 
 flow = document.getElementById('flow');
 
-albumSelectModal = document.getElementById("albumSelectModal");
-albumSelectModalMenu = document.getElementById("albumSelectModalMenu");
+promptModal = document.getElementById("promptModal");
+promptModalMenu = document.getElementById("promptModalMenu");
 
 viewModal = document.getElementById("viewModal")
 viewModalImg = document.getElementById("viewModalImg")
@@ -91,35 +91,35 @@ modeButtons = {
 };
 
 //This is kind of hacky -- we reassign this function in promptAlbum
-albumSelectModalClose = function() {};
+promptModalClose = function() {};
 
 function prompt(options, customText) {
-    albumSelectModal.style.display = "block"
-    while (albumSelectModalMenu.childElementCount > 0) {
-	albumSelectModalMenu.children[0].remove();
+    promptModal.style.display = "block"
+    while (promptModalMenu.childElementCount > 0) {
+	promptModalMenu.children[0].remove();
     }
     return new Promise(function(resolve, reject) {
-	albumSelectModalClose = function() {
-	    albumSelectModal.style.display = "none";
-	    albumSelectModalClose = function() {};
+	promptModalClose = function() {
+	    promptModal.style.display = "none";
+	    promptModalClose = function() {};
 	    resolve(null);
 	}
 	options.forEach(function(albumName) {
 	    var onclick = function() {
-		albumSelectModal.style.display = "none";
+		promptModal.style.display = "none";
 		resolve(albumName);
 	    };
 	    var mi = document.createElement("div")
-	    mi.classList.add("albumSelectModalMenuItem");
+	    mi.classList.add("promptModalMenuItem");
 	    mi.innerHTML = albumName;
 	    mi.onclick = onclick;
-	    albumSelectModalMenu.append(mi);
+	    promptModalMenu.append(mi);
 	});
 	// New album text field
 	if (customText) {
 	    var form = document.createElement("form");
 	    var textbox = document.createElement("input");
-	    textbox.classList.add("albumSelectModalMenuItem");
+	    textbox.classList.add("promptModalMenuItem");
 	    textbox.classList.add("textbox");
 	    textbox.placeholder = customText
 	    textbox.value = customText
@@ -136,11 +136,11 @@ function prompt(options, customText) {
 		if (albums.indexOf(albumName) < 0) {
 		    albums.push(albumName);
 		}
-		albumSelectModal.style.display = "none";
+		promptModal.style.display = "none";
 		resolve(albumName);
 	    }
 	    form.action = "javascript:void(0);";
-	    albumSelectModalMenu.append(form);
+	    promptModalMenu.append(form);
 	}
     });
 }
@@ -528,7 +528,7 @@ document.onkeyup = function(e) {
     switch(key) {
     case 27: // esc
 	viewModalClose();
-	albumSelectModalClose();
+	promptModalClose();
 	break;
     case 37: // left
 	viewModalPrev();

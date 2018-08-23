@@ -174,7 +174,7 @@
 	  opacity: 1;
       }
 
-      div.albumSelectModalMenu {
+      div.promptModalMenu {
 	  padding: 1vw;
 	  background: white;
 	  width: 20%;
@@ -182,7 +182,7 @@
 	  margin-top: 10%;
       }
 
-      .albumSelectModalMenuItem{
+      .promptModalMenuItem{
 	  margin: 5px;
 	  border: solid;
 	  padding: 3px;
@@ -196,7 +196,7 @@
 	  color: black;
       }
 
-      .albumSelectModalMenuItem:hover{
+      .promptModalMenuItem:hover{
 	  opacity: 1;
       }
 
@@ -228,19 +228,15 @@
 	</svg>
       </a>
     </div>
-    <div id="albumSelectModal" class="modal">
-      <a href="#" onclick="albumSelectModalClose()">
-      	<div id="albumSelectModalClose" class="modalCloseButton">
+    <div id="promptModal" class="modal">
+      <a href="#" onclick="promptModalClose()">
+      	<div id="promptModalClose" class="modalCloseButton">
 	  <svg id="viewModalClose" class="modalCloseButton" viewBox="0 0 24 24">
 	    <use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
 	  </svg>
 	</div>
       </a>
-      <div id="albumSelectModalMenu" class="albumSelectModalMenu">
-	<div class="albumSelectModalMenuItem">foo</div>
-	<div class="albumSelectModalMenuItem">bar</div>
-	<div class="albumSelectModalMenuItem">This is a really long album name to check the overflow behavior of this menu.</div>
-	<div class="albumSelectModalMenuItem">New album...</div>
+      <div id="promptModalMenu" class="promptModalMenu">
       </div>
     </div>
     <div id="sidebar" class="sidebar">
