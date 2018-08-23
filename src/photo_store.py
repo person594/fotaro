@@ -49,22 +49,6 @@ def str_escape(s: str) -> str:
 def escape_identifier(s: str) -> str:
     return '"' + s.replace('"', '""') + '"'
 
-def index_string_between(left: str, right: str) -> str:
-    assert left < right
-    assert not left.endswith("0")
-    assert not right.endswith("0")
-    if left == '':
-        if right[0] == "0":
-            return "0" + index_string_between(left, right[1:])
-        else:
-            return "01"
-    elif left[0] == right[0]:
-        return left[0] + index_string_between(left[1:], right[1:])
-    else:
-        # left[0] == "0", right[0] == "1"
-        return left + "1"
-
-
 
 class PhotoStore:
     def __init__(self, data_dir: str) -> None:
@@ -96,7 +80,7 @@ class PhotoStore:
             c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=%s" % album_name)
             r = c.fetchone()
             if r is not None:
-                c.execute("SELECT Photos.Hash, Width, Height FROM %s INNER JOIN Photos ON %s.Hash = Photos.Hash ORDER BY IndexString" % (album_identifier, album_identifier))
+                c.execute("SELECT Photos.Hash, Width, Height FROM %s INNER JOIN Photos ON %s.Hash = Photos.Hash ORDER BY Photos.Timestamp" % (album_identifier, album_identifier))
                 result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
                 return list(result)
             else:
@@ -111,17 +95,9 @@ class PhotoStore:
         album_identifier = escape_identifier("Album::" + album_name);
         print("album_identifier");
         c = self.con.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS %s(Hash TEXT NOT NULL, IndexString TEXT NOT NULL PRIMARY KEY)" % album_identifier)
-        c.execute("SELECT IndexString FROM %s ORDER BY IndexString DESC" % album_identifier)
-        r = c.fetchone()
-        if r is None:
-            left = ""
-        else:
-            left = r[0]
-        right = "1"
+        c.execute("CREATE TABLE IF NOT EXISTS %s(Hash TEXT NOT NULL PRIMARY KEY)" % album_identifier)
         for hsh in hashes:
-            left = index_string_between(left, right)
-            self._insert(album_identifier, hsh, left)
+            self._insert(album_identifier, hsh)
         self.con.commit()
 
     def _insert(self, table: str, *args: Any) -> None:
