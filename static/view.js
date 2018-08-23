@@ -157,8 +157,6 @@ function prompt(text, options, customText) {
     });
 }
 
-//function promptWithDeletion()
-
 function flashPhoto(idx) {
     pe = document.getElementById("photo" + idx);
     pe.style.transition = "0s";
