@@ -71,10 +71,10 @@ function downloadBlob(blob, filename) {
 
 flow = document.getElementById('flow');
 
+promptModalBackground = document.getElementById("promptModalBackground");
 promptModal = document.getElementById("promptModal");
-promptModalMenu = document.getElementById("promptModalMenu");
 
-viewModal = document.getElementById("viewModal")
+viewModalBackground = document.getElementById("viewModalBackground")
 viewModalImg = document.getElementById("viewModalImg")
 viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
 viewModalCloseButton = document.getElementById("viewModalClose");
@@ -99,15 +99,15 @@ editableOnlyButtons = [
 ];
 
 function prompt(text, options, customText) {
-    var modal = promptModal.cloneNode(true);
-    var menu = modal.querySelector(".promptModalMenu")
-    var closeButton = modal.querySelector(".modalCloseButton")
+    var modalBackground = promptModalBackground.cloneNode(true);
+    var modal = modalBackground.querySelector(".promptModal")
+    var closeButton = modalBackground.querySelector(".modalCloseButton")
     var textDiv = document.createElement("div");
     textDiv.classList.add("promptText")
     textDiv.innerHTML = text;
-    menu.append(textDiv);
-    document.body.append(modal);
-    modal.style.display = "block";
+    modal.append(textDiv);
+    document.body.append(modalBackground);
+    modalBackground.style.display = "block";
     var oldKeyUpHook = document.onkeyup;
     return new Promise(function(resolve, reject) {
 	closeButton.onclick = function() {
@@ -131,16 +131,16 @@ function prompt(text, options, customText) {
 		resolve(value);
 	    };
 	    var mi = document.createElement("div")
-	    mi.classList.add("promptModalMenuItem");
+	    mi.classList.add("promptModalItem");
 	    mi.innerHTML = display;
 	    mi.onclick = onclick;
-	    menu.append(mi);
+	    modal.append(mi);
 	});
 
 	if (customText) {
 	    var form = document.createElement("form");
 	    var textbox = document.createElement("input");
-	    textbox.classList.add("promptModalMenuItem");
+	    textbox.classList.add("promptModalItem");
 	    textbox.classList.add("textbox");
 	    textbox.placeholder = customText
 	    textbox.value = customText
@@ -156,10 +156,10 @@ function prompt(text, options, customText) {
 		resolve(textbox.value);
 	    }
 	    form.action = "javascript:void(0);";
-	    menu.append(form);
+	    modal.append(form);
 	}
     }).then(function(selection) {
-	modal.remove();
+	modalBackground.remove();
 	document.onkeyup = oldKeyUpHook;
 	return selection;
     });
@@ -189,7 +189,7 @@ viewModalIndex = -1
 function viewModalShow(idx) {
     viewModalIndex = idx;
     var hash = photoList[idx][0];
-    viewModal.style.display = "block";
+    viewModalBackground.style.display = "block";
     viewModalPlaceholderImg.src = "/thumb/" + hash
     viewModalImg.style.opacity = 0;
     viewModalImg.src = "/photo/" + hash;
@@ -201,11 +201,11 @@ function viewModalShow(idx) {
 }
 
 function viewModalClose() {
-    viewModal.style.display = "none";
+    viewModalBackground.style.display = "none";
 }
 
 function viewModalPrev() {
-    if (viewModal.style.display == "none")
+    if (viewModalBackground.style.display == "none")
 	return
     if (viewModalIndex >= 1) {
 	--viewModalIndex;
@@ -214,7 +214,7 @@ function viewModalPrev() {
 }
 
 function viewModalNext() {
-    if (viewModal.style.display == "none")
+    if (viewModalBackground.style.display == "none")
 	return
     if (viewModalIndex >= 0 && viewModalIndex < photoList.length - 1) {
 	++viewModalIndex;
