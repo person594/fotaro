@@ -19,7 +19,7 @@ albums = [
 ];
 listName = null;
 
-var getJSON = function(url, callback) {
+var getJSON = function(url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.responseType = 'json';
@@ -74,6 +74,15 @@ flow = document.getElementById('flow');
 promptModalBackground = document.getElementById("promptModalBackground");
 promptModal = document.getElementById("promptModal");
 
+loginModalBackground = document.getElementById("loginModalBackground");
+loginModal = document.getElementById("loginModal");
+loginModalCloseButton = document.getElementById("loginModalClose");
+loginForm = document.getElementById("loginForm");
+loginFormUsername = document.getElementById("loginFormUsername");
+loginFormPassword = document.getElementById("loginFormPassword");
+
+
+
 viewModalBackground = document.getElementById("viewModalBackground")
 viewModalImg = document.getElementById("viewModalImg")
 viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
@@ -98,9 +107,33 @@ editableOnlyButtons = [
     sidebarButtonRemove
 ];
 
+
+function promptLogin() {
+    loginModalBackground.style.display = "block";
+    return new Promise(function(resolve, reject) {
+	loginModalCloseButton.onclick = function(){
+	    resolve(null)
+	};
+	loginForm.onsubmit = function() {
+	    var username = loginFormUsername.value;
+	    var password = loginFormPassword.value;
+	    post("/login", {
+		"username": username,
+		"password": password
+	    }).then(function(result) {
+		console.log(result);
+	    });
+	}
+	
+    }).then(function(result) {
+	loginModalBackground.style.display = "none";
+	return result;
+    });
+}
+
 function prompt(text, options, customText) {
     var modalBackground = promptModalBackground.cloneNode(true);
-    var modal = modalBackground.querySelector(".promptModal")
+    var modal = modalBackground.querySelector(".modal")
     var closeButton = modalBackground.querySelector(".modalCloseButton")
     var textDiv = document.createElement("div");
     textDiv.classList.add("promptText")
@@ -534,6 +567,16 @@ function setMode(newMode) {
 
 function sidebarButtonHook(button) {
     switch(button) {
+    case sidebarButtonLogin:
+	promptLogin();
+	break;
+    case sidebarButtonAlbums:
+	prompt("Go to album", [["all", "<i>All photos</i>"]].concat(albums), false).then(function(albumName) {
+	    if (albumName) {
+		location = "/?" + albumName;
+	    }
+	});
+	break;
     case sidebarButtonView:
 	setMode("view");
 	break;
@@ -578,12 +621,6 @@ function sidebarButtonHook(button) {
 	    deselectAllPhotos();
 	}
 	break;
-    case sidebarButtonAlbums:
-	prompt("Go to album", [["all", "<i>All photos</i>"]].concat(albums), false).then(function(albumName) {
-	    if (albumName) {
-		location = "/?" + albumName;
-	    }
-	});
     }
 
     

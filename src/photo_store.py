@@ -10,6 +10,8 @@ from typing import List, Optional, Any, Tuple, IO, Iterator, overload, cast
 from PIL import Image
 import sqlite3 as lite
 
+from util import *
+
 def hash_file(path: str) -> str:
     m = hashlib.sha256()
     with open(path, "rb") as f:
@@ -32,23 +34,6 @@ def image_timestamp(im: Image.Image) -> Optional[int]:
 def image_mime_type(im: Image.Image) -> str:
     return Image.MIME[im.format]
     
-
-def escape(x: Any) -> str:
-    if x is None:
-        return "NULL"
-    elif isinstance(x, str):
-        return "'" + str_escape(x) + "'"
-    elif isinstance(x, int):
-        return str(x)
-    else:
-        return escape(repr(x))
-
-def str_escape(s: str) -> str:
-    return s.replace("'", "''")
-
-def escape_identifier(s: str) -> str:
-    return '"' + s.replace('"', '""') + '"'
-
 
 class PhotoStore:
     def __init__(self, data_dir: str) -> None:

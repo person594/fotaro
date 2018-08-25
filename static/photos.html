@@ -175,7 +175,7 @@
 	  opacity: 1;
       }
 
-      div.promptModal{
+      div.modal{
 	  padding: 1vw;
 	  background: white;
 	  width: 20%;
@@ -212,6 +212,11 @@
 	  color: black;
       }
 
+      .loginForm input{
+	  width: 100%;
+	  margin: 3px;
+      }
+
     </style>
     <meta name="viewport" content="width=device-width, user-scalable=no">
     <title>Fotaro</title>
@@ -240,7 +245,19 @@
       <svg id="promptModalClose" class="modalCloseButton" viewBox="0 0 24 24">
 	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
       </svg>
-      <div id="promptModal" class="promptModal">
+      <div id="promptModal" class="modal">
+      </div>
+    </div>
+    <div id="loginModalBackground" class="modalBackground">
+      <svg id="loginModalClose" class="modalCloseButton" viewBox="0 0 24 24">
+	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+      </svg>
+      <div id="loginModal" class="modal">
+	<form class="loginForm" id="loginForm" action="javascript:void(0);">
+	  <input type="text" placeholder="Username" name="username" id="loginFormUsername"><br>
+	  <input type="password" placeholder="Password" name="password" id="loginFormPassword"><br>
+	  <input type="submit" value="Login">
+	</form>
       </div>
     </div>
     <div id="sidebar" class="sidebar">
