@@ -19,6 +19,8 @@ albums = [
 ];
 listName = null;
 
+username = null;
+
 var getJSON = function(url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -77,6 +79,7 @@ promptModal = document.getElementById("promptModal");
 loginModalBackground = document.getElementById("loginModalBackground");
 loginModal = document.getElementById("loginModal");
 loginModalCloseButton = document.getElementById("loginModalClose");
+loginModalErrorText = document.getElementById("loginModalErrorText");
 loginForm = document.getElementById("loginForm");
 loginFormUsername = document.getElementById("loginFormUsername");
 loginFormPassword = document.getElementById("loginFormPassword");
@@ -88,6 +91,7 @@ viewModalImg = document.getElementById("viewModalImg")
 viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
 viewModalCloseButton = document.getElementById("viewModalClose");
 
+sidebarButtonLogin = document.getElementById("sidebarButtonLogin");
 sidebarButtonView = document.getElementById("sidebarButtonView");
 sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
 sidebarButtonDeselect = document.getElementById("sidebarButtonDeselect");
@@ -108,6 +112,17 @@ editableOnlyButtons = [
 ];
 
 
+function setUsername(un) {
+    username = un;
+    if (username != null) {
+	sidebarButtonLogin.classList.add("sidebarButtonLoggedIn");
+	sidebarButtonLogin.parentElement.title = "Logged in as " + username;
+    } else {
+	sidebarButtonLogin.classList.remove("sidebarButtonLoggedIn");
+	sidebarButtonLogin.parentElement.title = "Log in";
+    }
+}
+
 function promptLogin() {
     loginModalBackground.style.display = "block";
     return new Promise(function(resolve, reject) {
@@ -120,14 +135,23 @@ function promptLogin() {
 	    post("/login", {
 		"username": username,
 		"password": password
-	    }).then(function(result) {
-		console.log(result);
+	    }).then(resolve, function(response) {
+		loginModalErrorText.innerHTML = response;
+		loginModalErrorText.style.display = "block";
 	    });
 	}
-	
     }).then(function(result) {
+	if (result != null) {
+	    setUsername(result);
+	}
 	loginModalBackground.style.display = "none";
 	return result;
+    });
+}
+
+function logout() {
+    return getJSON("/logout").then(function() {
+	setUsername(null)
     });
 }
 
@@ -568,7 +592,15 @@ function setMode(newMode) {
 function sidebarButtonHook(button) {
     switch(button) {
     case sidebarButtonLogin:
-	promptLogin();
+	if (username == null) {
+	    promptLogin();
+	} else {
+	    prompt("Logged in as " + username, ["Log out"]).then(function(result) {
+		if (result == "Log out") {
+		    return logout()
+		}
+	    })
+	}
 	break;
     case sidebarButtonAlbums:
 	prompt("Go to album", [["all", "<i>All photos</i>"]].concat(albums), false).then(function(albumName) {
@@ -677,6 +709,9 @@ loadPromise = Promise.all([
     }),
     getJSON("/albums").then(function(albumNames) {
 	albums = albumNames;
+    }),
+    getJSON("/username").then(function(username) {
+	setUsername(username);
     })
 ])
 

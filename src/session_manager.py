@@ -23,6 +23,13 @@ class SessionManager:
         c = self.con.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
         c.execute("CREATE TABLE IF NOT EXISTS Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
+
+    # call this before we read from the sessions table
+    def garbage_collect_sessions(self) -> None:
+        c = self.con.cursor()
+        now = now_timestamp()
+        c.execute("DELETE FROM Sessions WHERE Expires<%s" % escape(now))
+        self.con.commit()
         
     def make_user(self, username: str, password: str) -> None:
         c = self.con.cursor()
@@ -37,6 +44,7 @@ class SessionManager:
         self.con.commit()
         
     def make_session(self, username: str, long_term: bool = False) -> Optional[SimpleCookie]:
+        self.garbage_collect_sessions()
         c = self.con.cursor()
         c.execute("SELECT SessionID FROM Sessions WHERE Username=%s" % escape(username))
         if len(list(c.fetchall())) > self.max_sessions_per_user:
@@ -48,13 +56,29 @@ class SessionManager:
             expires = datetime.now(timezone.utc) + self.short_term_session_timeout
 
         cookie = SimpleCookie()
+        cookie["test_field"] = "lol"
         cookie["sess_id"] = sess_id
         if long_term:
             cookie["sess_id"]["expires"] = format_datetime(expires, True)
         c.execute("INSERT INTO Sessions VALUES(%s, %s, %s)" % (escape(sess_id), escape(username), escape(utc_to_timestamp(expires))))
         self.con.commit()
         return cookie
-        
+
+    def session_user(self, sess_id: str) -> Optional[str]:
+        self.garbage_collect_sessions()
+        c = self.con.cursor()
+        c.execute("SELECT Username FROM Sessions WHERE SessionID=%s" % escape(sess_id))
+        r = c.fetchone()
+        if r is None:
+            return None
+        assert isinstance(r[0], str)
+        return r[0]
+
+    def end_session(self, sess_id: str) -> None:
+        c = self.con.cursor()
+        c.execute("DELETE FROM Sessions WHERE SessionID=%s" % escape(sess_id))
+        self.con.commit()
+
         
     def authenticate(self, username: str, password: str) -> Optional[SimpleCookie]:
         c = self.con.cursor()

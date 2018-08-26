@@ -17,6 +17,8 @@ def str_escape(s: str) -> str:
 def escape_identifier(s: str) -> str:
     return '"' + s.replace('"', '""') + '"'
 
+def now_timestamp() -> int:
+    return utc_to_timestamp(datetime.now(timezone.utc))
 
 def utc_to_timestamp(utc: datetime) -> int:
     return int((utc - datetime.fromtimestamp(0, timezone.utc)).total_seconds())

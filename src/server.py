@@ -6,6 +6,7 @@ import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.cookies import BaseCookie
+from typing import Optional, Dict, Any
 
 from photo_store import PhotoStore
 from session_manager import SessionManager
@@ -40,17 +41,44 @@ def run_server(data_dir: str) -> None:
             else:
                 self.serve_404()
 
-        def serve_error(self, code: int, message: str) -> None:
-            self.send_response(code)
-            self.send_header('Content-type','text/html')
+        def serve_text(self, text: str, status: int = 200) -> None:
+            self.send_response(status)
+            self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(bytes(message, "utf8"))
+            self.wfile.write(bytes(text, "utf8"))
+
+        def serve_json(self, value: Any, status: int = 200) -> None:
+            js = json.dumps(value)
+            self.send_response(status)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(bytes(js, "utf8"))
 
         def serve_400(self) -> None:
-            self.serve_error(400, "Bad Request.")
+            self.serve_text("Bad Request.", 400)
                 
         def serve_404(self) -> None:
-            self.serve_error(404, "File not found.")
+            self.serve_text("File not found.", 404)
+
+        def get_cookies(self) -> Dict[str, str]:
+            cookie_str = self.headers["Cookie"]
+            if cookie_str is None:
+                return {}
+            return {key: value for key, value in [cookie.split("=", 1) for cookie in str(cookie_str).split("; ")]}
+
+        def get_sess_id(self) -> Optional[str]:
+            cookies = self.get_cookies()
+            if "sess_id" in cookies:
+                return cookies["sess_id"]
+            else:
+                return None
+            
+        def get_username(self) -> Optional[str]:
+            sess_id = self.get_sess_id()
+            if sess_id is not None:
+                return sm.session_user(sess_id)
+            else:
+                return None
 
         def do_GET(self) -> None:
             path = self.path.rsplit("?", 1)[0]
@@ -97,21 +125,21 @@ def run_server(data_dir: str) -> None:
                     return
             elif len(spath) == 3 and spath[1] == "list":
                 list_name = urllib.parse.unquote(spath[2])
-                photo_list = ps.get_list(list_name)
-                response = json.dumps(photo_list)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(bytes(response, "utf8"))
+                self.serve_json(ps.get_list(list_name))
                 return
             elif len(spath) == 2 and spath[1] == "albums":
-                albums = ps.get_albums()
-                response = json.dumps(albums)
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(bytes(response, "utf8"))
+                self.serve_json(ps.get_albums())
                 return
+            elif len(spath) == 2 and spath[1] == 'username':
+                self.serve_json(self.get_username())
+                return
+            elif len(spath) == 2 and spath[1] == 'logout':
+                sess_id = self.get_sess_id()
+                if sess_id is not None:
+                    sm.end_session(sess_id)
+                self.serve_json(None)
+                return
+                    
 
             self.serve_static(path)
             
@@ -166,7 +194,7 @@ def run_server(data_dir: str) -> None:
 
             elif path == "/login":
                 try:
-                    username= post_data['username']
+                    username = post_data['username']
                     password = post_data['password']
                 except KeyError:
                     self.serve_400()
@@ -176,9 +204,9 @@ def run_server(data_dir: str) -> None:
                     self.send_response(200)
                     self.send_cookie(cookie)
                     self.end_headers()
-                    self.wfile.write(bytes("true", encoding="utf-8"))
+                    self.wfile.write(bytes(username, encoding="utf-8"))
                 else:
-                    self.serve_error(401, "Invalid username or password")
+                    self.serve_text("Invalid username or password", 401)
                 return
   
 
