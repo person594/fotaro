@@ -230,14 +230,13 @@ class PhotoStore:
         for dirpath, _, fnames in os.walk(path):
             for fname in fnames:
                 paths.add(os.path.join(dirpath, fname))
+        # update the files that we found
+        for path in paths:
+            self.add_file(path)
         # query the files we think are in that directory, and remove the ones that don't exist anymore
         c = self.con.cursor()
         c.execute("SELECT Path FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
         for (path,) in c.fetchall():
             if path not in paths:
                 self.remove_file(path)
-        # update the files that d
-        for path in paths:
-            self.add_file(path)
-
     
