@@ -21,8 +21,14 @@ class SessionManager:
         self.short_term_session_timeout = timedelta(days=1)
         self.long_term_session_timeout = timedelta(days=365)
         c = self.con.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
-        c.execute("CREATE TABLE IF NOT EXISTS Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
+
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Users'")
+        if c.fetchone() is None:
+            # if the table doesn't exist, initialize it with a root
+            c.execute("CREATE TABLE Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
+            c.execute("CREATE TABLE Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
+            self.con.commit()
+            self.make_user('root', 'root')
 
     # call this before we read from the sessions table
     def garbage_collect_sessions(self) -> None:

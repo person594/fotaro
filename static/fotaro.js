@@ -130,14 +130,16 @@ function promptLogin() {
 	    resolve(null)
 	};
 	loginForm.onsubmit = function() {
+	    loginModalErrorText.style.display = "none";
 	    var username = loginFormUsername.value;
 	    var password = loginFormPassword.value;
+	    loginFormPassword.value = '';
 	    post("/login", {
 		"username": username,
 		"password": password
 	    }).then(resolve, function(response) {
 		loginModalErrorText.innerHTML = response;
-		loginModalErrorText.style.display = "block";
+		loginModalErrorText.style.display = "block"
 	    });
 	}
     }).then(function(result) {
@@ -145,13 +147,14 @@ function promptLogin() {
 	    setUsername(result);
 	}
 	loginModalBackground.style.display = "none";
-	return result;
+	location.reload();
     });
 }
 
 function logout() {
     return getJSON("/logout").then(function() {
-	setUsername(null)
+	setUsername(null);
+	location.reload()
     });
 }
 
@@ -400,33 +403,34 @@ function removePhotosFromAlbum(indices) {
     indices.forEach(function(idx) {
 	hashes.push(photoList[idx][0]);
     });
-    post("/remove", {"album": listName, "hashes": hashes});
-    var newPhotoList = [];
-    var indexMap = []
-    var newIndex = 0;
-    photoList.forEach(function(photo, i) {
-	// if this photo was not to be removed
-	if (indices.indexOf(i) < 0) {
-	    newPhotoList.push(photo);
-	    indexMap.push(newIndex++);
-	} else {
-	    indexMap.push(-1);
+    post("/remove", {"album": listName, "hashes": hashes}).then(function(){
+	var newPhotoList = [];
+	var indexMap = []
+	var newIndex = 0;
+	photoList.forEach(function(photo, i) {
+	    // if this photo was not to be removed
+	    if (indices.indexOf(i) < 0) {
+		newPhotoList.push(photo);
+		indexMap.push(newIndex++);
+	    } else {
+		indexMap.push(-1);
+	    }
+	});
+	var newLoadedPhotoElements = {}
+	for (var idx in loadedPhotoElements) {
+	    var pe = loadedPhotoElements[idx];
+	    var newIdx = indexMap[idx];
+	    if (newIdx >= 0) {
+		newLoadedPhotoElements[newIdx] = loadedPhotoElements[idx];
+		pe.id = "photo" + newIdx;
+	    } else {
+		pe.remove();
+	    }
 	}
+	photoList = newPhotoList;
+	loadedPhotoElements = newLoadedPhotoElements;
+	reflow();
     });
-    var newLoadedPhotoElements = {}
-    for (var idx in loadedPhotoElements) {
-	var pe = loadedPhotoElements[idx];
-	var newIdx = indexMap[idx];
-	if (newIdx >= 0) {
-	    newLoadedPhotoElements[newIdx] = loadedPhotoElements[idx];
-	    pe.id = "photo" + newIdx;
-	} else {
-	    pe.remove();
-	}
-    }
-    photoList = newPhotoList;
-    loadedPhotoElements = newLoadedPhotoElements;
-    reflow();
 }
 
 function loadPhoto(idx) {

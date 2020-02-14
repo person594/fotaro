@@ -80,6 +80,15 @@ def run_server(data_dir: str) -> None:
             else:
                 return None
 
+        def has_read_permission(self, list_name: str) -> bool:
+            if list_name == 'all':
+                return self.get_username() is not None
+            else:
+                return True
+
+        def has_write_permission(self, list_name: str) -> bool:
+            return self.get_username() is not None
+
         def do_GET(self) -> None:
             path = self.path.rsplit("?", 1)[0]
             spath = path.split("/")
@@ -125,7 +134,10 @@ def run_server(data_dir: str) -> None:
                     return
             elif len(spath) == 3 and spath[1] == "list":
                 list_name = urllib.parse.unquote(spath[2])
-                self.serve_json(ps.get_list(list_name))
+                if self.has_read_permission(list_name):
+                    self.serve_json(ps.get_list(list_name))
+                else:
+                    self.serve_json([])
                 return
             elif len(spath) == 2 and spath[1] == "albums":
                 self.serve_json(ps.get_albums())
@@ -174,10 +186,15 @@ def run_server(data_dir: str) -> None:
                 except KeyError:
                     self.serve_400()
                     return
-                ps.add_photos_to_album(hashes, album_name)
-                self.send_response(201)
-                self.end_headers()
-                self.wfile.write(bytes("true", encoding="utf-8"));
+                if self.has_write_permission(album_name):
+                    ps.add_photos_to_album(hashes, album_name)
+                    self.send_response(201)
+                    self.end_headers()
+                    self.wfile.write(bytes("true", encoding="utf-8"));
+                else:
+                    self.send_response(403)
+                    self.end_headers()
+                    self.wfile.write(bytes("false", encoding="utf-8"));
                 return
             elif path == "/remove":
                 try:
@@ -186,10 +203,15 @@ def run_server(data_dir: str) -> None:
                 except KeyError:
                     self.serve_400()
                     return
-                ps.remove_photos_from_album(hashes, album_name)
-                self.send_response(201)
-                self.end_headers()
-                self.wfile.write(bytes("true", encoding="utf-8"));
+                if self.has_write_permission(album_name):
+                    ps.remove_photos_from_album(hashes, album_name)
+                    self.send_response(201)
+                    self.end_headers()
+                    self.wfile.write(bytes("true", encoding="utf-8"));
+                else:
+                    self.send_response(403)
+                    self.end_headers()
+                    self.wfile.write(bytes("false", encoding="utf-8"));
                 return
 
             elif path == "/login":
