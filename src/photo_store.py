@@ -175,8 +175,6 @@ class PhotoStore:
     def add_file(self, path: str) -> None:
         try:
             modified = int(os.path.getmtime(path))
-            if modified == self.db_file_last_modified(path):
-                return
             im = Image.open(path)
             w, h = im.size
             timestamp = image_timestamp(im)
@@ -208,21 +206,30 @@ class PhotoStore:
             thumb_path = os.path.join(self.thumbs_dir, hsh[:2], hsh[2:] + ".jpg")
             if os.path.isfile(thumb_path):
                 os.remove(thumb_path)
-            self.con.commit()
+        self.con.commit()
             
     def update_dir(self, path: str) -> None:
-        paths = set()
+        # get all the paths in the fs
+        fs_paths_modified = {}
         for dirpath, _, fnames in os.walk(path):
             for fname in fnames:
-                paths.add(os.path.join(dirpath, fname))
-        # query the files we think are in that directory, and remove the ones that don't exist anymore
+                fs_path = os.path.join(dirpath, fname)
+                fs_modified = int(os.path.getmtime(fs_path))
+                fs_paths_modified[fs_path] = fs_modified
+        # query all the paths in the db, along with the modified date
         c = self.con.cursor()
-        c.execute("SELECT Path FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
-        for (path,) in c.fetchall():
-            if path not in paths:
-                self.remove_file(path)
-        # update the files that d
-        for path in paths:
-            self.add_file(path)
-
+        c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
+        db_paths_modified = {}
+        for db_path, db_modified in c.fetchall():
+            db_paths_modified[db_path] = db_modified
+        # add new files
+        for fs_path, fs_modified in fs_paths_modified.items():
+            if fs_path not in db_paths_modified:
+                self.add_file(fs_path)
+            elif fs_modified > db_paths_modified[fs_path]:
+                self.add_file(fs_path)
+        # remove old files
+        for db_path in db_paths_modified:
+            if db_path not in fs_paths_modified:
+                self.remove_file(db_path)
     
