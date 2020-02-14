@@ -228,7 +228,7 @@
 	  color: black;
       }
 
-      .loginForm input{
+      .form input{
 	  width: 100%;
 	  margin: 3px;
       }
@@ -257,6 +257,7 @@
 	</svg>
       </a>
     </div>
+
     <div id="promptModalBackground" class="modalBackground">
       <svg id="promptModalClose" class="modalCloseButton" viewBox="0 0 24 24">
 	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
@@ -264,19 +265,37 @@
       <div id="promptModal" class="modal">
       </div>
     </div>
+
     <div id="loginModalBackground" class="modalBackground">
       <svg id="loginModalClose" class="modalCloseButton" viewBox="0 0 24 24">
 	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
       </svg>
       <div id="loginModal" class="modal">
 	<div id="loginModalErrorText" class="errorText" style="display: none;"></div>
-	<form class="loginForm" id="loginForm" action="javascript:void(0);">
+	<form class="form" id="loginForm" action="javascript:void(0);">
 	  <input type="text" placeholder="Username" name="username" id="loginFormUsername"><br>
 	  <input type="password" placeholder="Password" name="password" id="loginFormPassword"><br>
 	  <input type="submit" value="Login">
 	</form>
       </div>
     </div>
+
+    <div id="passwordChangeModalBackground" class="modalBackground">
+      <svg id="passwordChangeModalClose" class="modalCloseButton" viewBox="0 0 24 24">
+	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+      </svg>
+      <div id="passwordChangeModal" class="modal">
+	<div id="passwordChangeModalErrorText" class="errorText" style="display: none;"></div>
+	<form class="form" id="passwordChangeForm" action="javascript:void(0);">
+	  <input type="password" placeholder="Old Password" name="oldPassword" id="passwordChangeFormOldPassword"><br>
+	  <input type="password" placeholder="New Password" name="newPassword1" id="passwordChangeFormNewPassword1"><br>
+	  <input type="password" placeholder="New Password (again)" name="newPassword2" id="passwordChangeFormNewPassword2"><br>
+	  <input type="submit" value="Change Password">
+	</form>
+      </div>
+    </div>
+
+
     <div id="sidebar" class="sidebar">
       <div title="Log in">
 	<svg id="sidebarButtonLogin" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">

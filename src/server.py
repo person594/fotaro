@@ -221,7 +221,7 @@ def run_server(data_dir: str) -> None:
                 except KeyError:
                     self.serve_400()
                     return
-                cookie = sm.authenticate(username, password)
+                cookie = sm.login(username, password)
                 if cookie is not None:
                     self.send_response(200)
                     self.send_cookie(cookie)
@@ -230,7 +230,26 @@ def run_server(data_dir: str) -> None:
                 else:
                     self.serve_text("Invalid username or password", 401)
                 return
-  
+            elif path == "/passwordChange":
+                try:
+                    old_password = post_data['oldPassword']
+                    new_password = post_data['newPassword']
+                except KeyError:
+                    self.serve_400()
+                    return
+                username = self.get_username()
+                if username is None:
+                    self.serve_400()
+                    return
+                if sm.authenticate(username, old_password):
+                    sm.set_password(username, new_password)
+                    self.send_response(200)
+                    self.end_headers()
+                    self.wfile.write(bytes())
+                else:
+                    self.serve_text("Invalid password", 401)
+                return
+                
 
     # Server settings
     # Choose port 8080, for port 80, which is normally used for a http server, you need root access

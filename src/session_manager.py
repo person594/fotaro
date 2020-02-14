@@ -13,6 +13,10 @@ class UserAlreadyExistsException(Exception):
     def __init__(self, username: str) -> None:
         super().__init__("A user with the name %s already exists" % username)
 
+class NoSuchUserException(Exception):
+    def __init__(self, username: str) -> None:
+        super().__init__("No user with the name %s" % username)
+
 class SessionManager:
     def __init__(self, data_dir: str) -> None:
         db_file = os.path.join(data_dir, "fotaro.db")
@@ -48,6 +52,18 @@ class SessionManager:
         passhash = m.digest()
         c.execute("INSERT INTO Users VALUES(%s, %s, %s)" % (escape(username), escape(salt.hex()), escape(passhash.hex())))
         self.con.commit()
+
+    def set_password(self, username: str, password: str) -> None:
+       c = self.con.cursor()
+       c.execute("SELECT * FROM Users WHERE Username=%s" % escape(username))
+       if c.fetchone() is None:
+           raise NoSuchUserException(username)
+       salt = os.urandom(32)
+       m = hashlib.sha256()
+       m.update(bytes(password, encoding="utf-8") + salt)
+       passhash = m.digest()
+       c.execute("UPDATE Users SET Salt=?, Passhash=? WHERE Username=?", (salt.hex(), passhash.hex(), username))
+       self.con.commit()
         
     def make_session(self, username: str, long_term: bool = False) -> Optional[SimpleCookie]:
         self.garbage_collect_sessions()
@@ -85,20 +101,27 @@ class SessionManager:
         c.execute("DELETE FROM Sessions WHERE SessionID=%s" % escape(sess_id))
         self.con.commit()
 
-        
-    def authenticate(self, username: str, password: str) -> Optional[SimpleCookie]:
+    def authenticate(self, username: str, password: str) -> bool:
         c = self.con.cursor()
         c.execute("SELECT * FROM Users WHERE Username=%s" % escape(username))
         r = c.fetchone()
         if r is None:
-            return None
+            # user not found
+            return False
         username, salt, passhash = r
         # no password set
         if salt is None or passhash is None:
-            return None
+            return False
         m = hashlib.sha256()
         m.update(bytes(password, encoding="utf-8") + bytes.fromhex(salt))
         if m.digest() == bytes.fromhex(passhash):
+            return True
+        else:
+            # bad password
+            return False
+
+    def login(self, username: str, password: str) -> Optional[SimpleCookie]:
+        if self.authenticate(username, password):
             return self.make_session(username)
         else:
             return None

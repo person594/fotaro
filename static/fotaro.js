@@ -85,6 +85,15 @@ loginFormUsername = document.getElementById("loginFormUsername");
 loginFormPassword = document.getElementById("loginFormPassword");
 
 
+passwordChangeModalBackground = document.getElementById("passwordChangeModalBackground");
+passwordChangeModal = document.getElementById("passwordChangeModal");
+passwordChangeModalCloseButton = document.getElementById("passwordChangeModalClose");
+passwordChangeModalErrorText = document.getElementById("passwordChangeModalErrorText");
+passwordChangeForm = document.getElementById("passwordChangeForm");
+passwordChangeFormOldPassword = document.getElementById("passwordChangeFormOldPassword");
+passwordChangeFormNewPassword1 = document.getElementById("passwordChangeFormNewPassword1");
+passwordChangeFormNewPassword2 = document.getElementById("passwordChangeFormNewPassword2");
+
 
 viewModalBackground = document.getElementById("viewModalBackground")
 viewModalImg = document.getElementById("viewModalImg")
@@ -121,6 +130,45 @@ function setUsername(un) {
 	sidebarButtonLogin.classList.remove("sidebarButtonLoggedIn");
 	sidebarButtonLogin.parentElement.title = "Log in";
     }
+}
+
+function promptPasswordChange() {
+    passwordChangeModalBackground.style.display = "block";
+    return new Promise(function(resolve, reject) {
+	passwordChangeModalCloseButton.onclick = function(){
+	    resolve(null)
+	};
+	passwordChangeForm.onsubmit = function() {
+	    passwordChangeModalErrorText.style.display = "none";
+	 
+	    var oldPassword = passwordChangeFormOldPassword.value;
+	    var newPassword1 = passwordChangeFormNewPassword1.value;
+	    var newPassword2 = passwordChangeFormNewPassword2.value;
+
+	    passwordChangeFormOldPassword.value = '';
+	    passwordChangeFormNewPassword1.value = '';
+	    passwordChangeFormNewPassword2.value = '';
+	    
+	    if (newPassword1 !== newPassword2) {
+		passwordChangeModalErrorText.innerHTML = "Passwords do not match";
+		passwordChangeModalErrorText.style.display = "block"
+	    } else if (newPassword1 === '') {
+	    	passwordChangeModalErrorText.innerHTML = "New password is empty";
+		passwordChangeModalErrorText.style.display = "block"
+	    } else {
+		post("/passwordChange", {
+		    "oldPassword": oldPassword,
+		    "newPassword": newPassword1,
+		}).then(resolve, function(response) {
+		    passwordChangeModalErrorText.innerHTML = response;
+		    passwordChangeModalErrorText.style.display = "block"
+		});
+	    }
+	};
+
+    }).then(function() {
+	passwordChangeModalBackground.style.display = "none";
+    });
 }
 
 function promptLogin() {
@@ -599,9 +647,11 @@ function sidebarButtonHook(button) {
 	if (username == null) {
 	    promptLogin();
 	} else {
-	    prompt("Logged in as " + username, ["Log out"]).then(function(result) {
+	    prompt("Logged in as " + username, ["Log out", "Change password"]).then(function(result) {
 		if (result == "Log out") {
 		    return logout()
+		} else if (result == "Change password") {
+		    return promptPasswordChange()
 		}
 	    })
 	}
