@@ -99,6 +99,7 @@ viewModalBackground = document.getElementById("viewModalBackground")
 viewModalImg = document.getElementById("viewModalImg")
 viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
 viewModalCloseButton = document.getElementById("viewModalClose");
+viewModalLoader = document.getElementById("viewModalLoader")
 
 sidebarButtonLogin = document.getElementById("sidebarButtonLogin");
 sidebarButtonView = document.getElementById("sidebarButtonView");
@@ -295,16 +296,18 @@ viewModalIndex = -1
 // ViewModal Functions
 
 function viewModalShow(idx) {
+    viewModalImg.style.opacity = 0;
     viewModalIndex = idx;
     var hash = photoList[idx][0];
     viewModalBackground.style.display = "block";
     viewModalPlaceholderImg.src = "/thumb/" + hash
-    viewModalImg.style.opacity = 0;
     viewModalImg.src = "/photo/" + hash;
     window.location.hash = idx;
     viewModalCloseButton.parentElement.href = "#" + idx;
+    viewModalLoader.style.visibility = 'visible';
     viewModalImg.onload = function() {
 	viewModalImg.style.opacity = 1;
+	viewModalLoader.style.visibility = 'hidden';
     }
 }
 
