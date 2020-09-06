@@ -33,6 +33,18 @@ def image_timestamp(im: Image.Image) -> Optional[int]:
 
 def image_mime_type(im: Image.Image) -> str:
     return Image.MIME[im.format]
+
+# we need this since exif orientation can flip w and h
+def image_shape(im: Image.Image) -> Tuple[int, int]:
+    rw, rh = im.size
+    try:
+        exif = im._getexif()
+    except AttributeError:
+        return rw, rh
+    orientation = exif.get(274, 1)
+    if orientation > 4:
+        return rh, rw
+    return rw, rh
     
 
 class PhotoStore:
@@ -152,10 +164,11 @@ class PhotoStore:
                 return None
             path, _ = pm
             im = Image.open(path)
+            exif = bytes(im.info.get('exif', b''))
             w, h = im.size
             s = self.thumbnail_height / h
             resized = im.resize((int(w*s), int(h*s)), Image.LANCZOS)
-            resized.save(thumb_path, "JPEG")
+            resized.save(thumb_path, "JPEG", exif=exif)
 
         with open(thumb_path, "rb") as f:
             contents = f.read()
@@ -176,7 +189,7 @@ class PhotoStore:
         try:
             modified = int(os.path.getmtime(path))
             im = Image.open(path)
-            w, h = im.size
+            w, h = image_shape(im)
             timestamp = image_timestamp(im)
             mime = image_mime_type(im)
             hsh = hash_file(path)

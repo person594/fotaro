@@ -12,6 +12,7 @@ ANTIALIAS: int
 class Image:
     format: str
     size: Tuple[int, int]
+    info: dict
 
     def resize(self, size: Tuple[int, int], resample: int = 0) -> Image:
         ...
@@ -19,7 +20,7 @@ class Image:
     def _getexif(self) -> dict:
         ...
 
-    def save(self, fp: Union[str, Path, IO[bytes]], format: Optional[str] = None) -> None:
+    def save(self, fp: Union[str, Path, IO[bytes]], format: Optional[str] = None, exif: bytes = b'') -> None:
         ...
 
 def open(fp: Union[str, Path, IO[bytes]], mode: str = "r") -> Image:
