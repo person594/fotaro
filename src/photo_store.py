@@ -41,6 +41,8 @@ def image_shape(im: Image.Image) -> Tuple[int, int]:
         exif = im._getexif()
     except AttributeError:
         return rw, rh
+    if exif is None:
+        return rw, rh
     orientation = exif.get(274, 1)
     if orientation > 4:
         return rh, rw
