@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import os
 import io
+import pickle
 import time
 from datetime import datetime
 import hashlib
@@ -47,25 +50,40 @@ def image_shape(im: Image.Image) -> Tuple[int, int]:
     if orientation > 4:
         return rh, rw
     return rw, rh
-    
 
-class PhotoStore:
+
+class CAS:
+
+    @staticmethod
+    def make(data_dir: str, content_dirs: List[str], thumb_height: int = 350) -> CAS:
+        os.mkdir(data_dir)
+        thumbs_dir = os.path.join(data_dir, "thumbs")
+        os.mkdir(thumbs_dir)
+        db_file = os.path.join(data_dir, "cas.db")
+        config_path = os.path.join(data_dir, '.config.pkl')
+        with open(config_path, 'wb') as f:
+            pickle.dump((content_dirs, thumb_height), f)
+        con = lite.connect(db_file)
+        c = con.cursor()
+        c.execute("CREATE TABLE Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
+        c.execute("CREATE TABLE Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
+        con.commit()
+        return CAS(data_dir)
+       
     def __init__(self, data_dir: str) -> None:
-        db_file = os.path.join(data_dir, "fotaro.db")
+        db_file = os.path.join(data_dir, "cas.db")
         self.thumbs_dir = os.path.join(data_dir, "thumbs")
-        self.thumbnail_height = 350
+        config_path = os.path.join(data_dir, '.config.pkl')
+        with open(config_path, 'rb') as f:
+            self.content_dirs, self.thumb_height = pickle.load(f)
         self.preferred_extensions = {
             ".jpeg", ".png", ".gif", ".bmp", ".svg"
         }
         self.con = lite.connect(db_file)
-        c = self.con.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
-        c.execute("CREATE TABLE IF NOT EXISTS Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
-        self.con.commit()
 
     def list_all_photos(self) -> List[Tuple[str, int, int]]:
         c = self.con.cursor()
-        c.execute("SELECT Hash, Width, Height FROM Photos WHERE Timestamp IS NOT NULL ORDER BY Timestamp DESC")
+        c.execute("SELECT Hash, Width, Height FROM Photos ORDER BY Timestamp DESC")
         result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
         return list(result)
 
@@ -154,7 +172,7 @@ class PhotoStore:
         return guessed_extensions[0]
         
 
-    def get_thumbnail(self, hsh: str) -> Optional[Tuple[bytes, str]]:
+    def get_thumb(self, hsh: str) -> Optional[Tuple[bytes, str]]:
         thumb_dir = os.path.join(self.thumbs_dir, hsh[:2])
         if not os.path.isdir(thumb_dir):
             os.makedirs(thumb_dir)
@@ -168,7 +186,7 @@ class PhotoStore:
             im = Image.open(path)
             exif = bytes(im.info.get('exif', b''))
             w, h = im.size
-            s = self.thumbnail_height / h
+            s = self.thumb_height / h
             resized = im.resize((int(w*s), int(h*s)), Image.LANCZOS)
             resized.save(thumb_path, "JPEG", exif=exif)
 
@@ -187,7 +205,7 @@ class PhotoStore:
         else:
             return None
         
-    def add_file(self, path: str) -> None:
+    def _add_file(self, path: str) -> None:
         try:
             modified = int(os.path.getmtime(path))
             im = Image.open(path)
@@ -195,15 +213,15 @@ class PhotoStore:
             timestamp = image_timestamp(im)
             mime = image_mime_type(im)
             hsh = hash_file(path)
-            self.remove_file(path)
+            self._remove_file(path)
             print("Adding file %s" % path)
             self._insert("Photos", hsh, w, h, timestamp)
             self._insert("Files", path, hsh, modified, mime)
-            self.get_thumbnail(hsh)
+            self.get_thumb(hsh)
         except OSError:
             pass
 
-    def remove_file(self, path: str) -> None:
+    def _remove_file(self, path: str) -> None:
         c = self.con.cursor()
         c.execute("SELECT Hash FROM Files WHERE Path=%s" % escape(path))
         hsh = c.fetchone()
@@ -223,28 +241,29 @@ class PhotoStore:
                 os.remove(thumb_path)
         self.con.commit()
             
-    def update_dir(self, path: str) -> None:
+    def update_dir(self) -> None:
         # get all the paths in the fs
         fs_paths_modified = {}
-        for dirpath, _, fnames in os.walk(path):
-            for fname in fnames:
-                fs_path = os.path.join(dirpath, fname)
-                fs_modified = int(os.path.getmtime(fs_path))
-                fs_paths_modified[fs_path] = fs_modified
-        # query all the paths in the db, along with the modified date
-        c = self.con.cursor()
-        c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
-        db_paths_modified = {}
-        for db_path, db_modified in c.fetchall():
-            db_paths_modified[db_path] = db_modified
-        # add new files
-        for fs_path, fs_modified in fs_paths_modified.items():
-            if fs_path not in db_paths_modified:
-                self.add_file(fs_path)
-            elif fs_modified > db_paths_modified[fs_path]:
-                self.add_file(fs_path)
-        # remove old files
-        for db_path in db_paths_modified:
-            if db_path not in fs_paths_modified:
-                self.remove_file(db_path)
-    
+        for path in self.content_dirs:
+            for dirpath, _, fnames in os.walk(path):
+                for fname in fnames:
+                    fs_path = os.path.join(dirpath, fname)
+                    fs_modified = int(os.path.getmtime(fs_path))
+                    fs_paths_modified[fs_path] = fs_modified
+            # query all the paths in the db, along with the modified date
+            c = self.con.cursor()
+            c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
+            db_paths_modified = {}
+            for db_path, db_modified in c.fetchall():
+                db_paths_modified[db_path] = db_modified
+            # add new files
+            for fs_path, fs_modified in fs_paths_modified.items():
+                if fs_path not in db_paths_modified:
+                    self._add_file(fs_path)
+                elif fs_modified > db_paths_modified[fs_path]:
+                    self._add_file(fs_path)
+            # remove old files
+            for db_path in db_paths_modified:
+                if db_path not in fs_paths_modified:
+                    self._remove_file(db_path)
+

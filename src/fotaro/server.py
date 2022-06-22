@@ -8,11 +8,12 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.cookies import BaseCookie
 from typing import Optional, Dict, Any
 
-from photo_store import PhotoStore
+
+from cas import CAS
 from session_manager import SessionManager
 
 def run_server(data_dir: str) -> None:
-    ps = PhotoStore(data_dir)
+    cas = CAS(data_dir)
     sm = SessionManager(data_dir)
     class RequestHandler(BaseHTTPRequestHandler):
         def send_cookie(self, c: BaseCookie) -> None:
@@ -26,7 +27,7 @@ def run_server(data_dir: str) -> None:
                 path = "photos.html"
             if "." not in path:
                 path = path + ".html"
-            path = os.path.join("../static/", path)
+            path = os.path.join("../../static/", path)
             print(path)
             if os.path.isfile(path):
                 with open(path, "rb") as f:
@@ -94,7 +95,7 @@ def run_server(data_dir: str) -> None:
             spath = path.split("/")
             if len(spath) == 3 and spath[1] == "photo":
                 hsh = spath[2]
-                cm = ps.get_photo(hsh)
+                cm = cas.get_photo(hsh)
                 if cm is not None:
                     contents, mime = cm
                     self.send_response(200)
@@ -105,7 +106,7 @@ def run_server(data_dir: str) -> None:
             elif len(spath) == 3 and spath[1] == "download":
                 if "." in spath[2]:
                     hsh = spath[2].rsplit(".", 1)[0]
-                    cm = ps.get_photo(hsh)
+                    cm = cas.get_photo(hsh)
                     if cm is not None:
                         contents, mime = cm
                         mime = "application/octet-stream"
@@ -116,7 +117,7 @@ def run_server(data_dir: str) -> None:
                     return
                 else:
                     hsh = spath[2]
-                    ext = ps.get_photo_extension(hsh)
+                    ext = cas.get_photo_extension(hsh)
                     self.send_response(301)
                     self.send_header('Location','/download/%s%s' % (hsh, ext))
                     self.end_headers()
@@ -124,7 +125,7 @@ def run_server(data_dir: str) -> None:
                     
             elif len(spath) == 3 and spath[1] == 'thumb':
                 hsh = spath[2]
-                cm = ps.get_thumbnail(hsh)
+                cm = cas.get_thumb(hsh)
                 if cm is not None:
                     contents, mime = cm
                     self.send_response(200)
@@ -135,12 +136,12 @@ def run_server(data_dir: str) -> None:
             elif len(spath) == 3 and spath[1] == "list":
                 list_name = urllib.parse.unquote(spath[2])
                 if self.has_read_permission(list_name):
-                    self.serve_json(ps.get_list(list_name))
+                    self.serve_json(cas.get_list(list_name))
                 else:
                     self.serve_json([])
                 return
             elif len(spath) == 2 and spath[1] == "albums":
-                self.serve_json(ps.get_albums())
+                self.serve_json(cas.get_albums())
                 return
             elif len(spath) == 2 and spath[1] == 'username':
                 self.serve_json(self.get_username())
@@ -173,7 +174,7 @@ def run_server(data_dir: str) -> None:
                 except KeyError:
                     self.serve_400()
                     return
-                content, mime = ps.get_photos_tgz(hashes)
+                content, mime = cas.get_photos_tgz(hashes)
                 self.send_response(200)
                 self.send_header('Content-type', mime)
                 self.end_headers()
@@ -187,7 +188,7 @@ def run_server(data_dir: str) -> None:
                     self.serve_400()
                     return
                 if self.has_write_permission(album_name):
-                    ps.add_photos_to_album(hashes, album_name)
+                    cas.add_photos_to_album(hashes, album_name)
                     self.send_response(201)
                     self.end_headers()
                     self.wfile.write(bytes("true", encoding="utf-8"));
@@ -204,7 +205,7 @@ def run_server(data_dir: str) -> None:
                     self.serve_400()
                     return
                 if self.has_write_permission(album_name):
-                    ps.remove_photos_from_album(hashes, album_name)
+                    cas.remove_photos_from_album(hashes, album_name)
                     self.send_response(201)
                     self.end_headers()
                     self.wfile.write(bytes("true", encoding="utf-8"));
