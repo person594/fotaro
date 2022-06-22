@@ -15,14 +15,14 @@ import sqlite3 as lite
 
 from util import *
 
-def hash_file(path: str) -> str:
+def _hash_file(path: str) -> str:
     m = hashlib.sha256()
     with open(path, "rb") as f:
         contents = f.read()
     m.update(contents)
     return m.digest().hex()
 
-def image_timestamp(im: Image.Image) -> Optional[int]:
+def _image_timestamp(im: Image.Image) -> Optional[int]:
     try:
         exif = im._getexif()
     except AttributeError:
@@ -34,11 +34,11 @@ def image_timestamp(im: Image.Image) -> Optional[int]:
     else:
         return None
 
-def image_mime_type(im: Image.Image) -> str:
+def _image_mime_type(im: Image.Image) -> str:
     return Image.MIME[im.format]
 
 # we need this since exif orientation can flip w and h
-def image_shape(im: Image.Image) -> Tuple[int, int]:
+def _image_shape(im: Image.Image) -> Tuple[int, int]:
     rw, rh = im.size
     try:
         exif = im._getexif()
@@ -176,7 +176,7 @@ class CAS:
         thumb_dir = os.path.join(self.thumbs_dir, hsh[:2])
         if not os.path.isdir(thumb_dir):
             os.makedirs(thumb_dir)
-        thumb_path = os.path.join(thumb_dir, hsh[2:] + ".jpg")
+        thumb_path = os.path.join(thumb_dir, hsh[2:] + ".jpeg")
 
         if not os.path.isfile(thumb_path):
             pm = self.hash_to_path_mime(hsh)
@@ -209,10 +209,10 @@ class CAS:
         try:
             modified = int(os.path.getmtime(path))
             im = Image.open(path)
-            w, h = image_shape(im)
-            timestamp = image_timestamp(im)
-            mime = image_mime_type(im)
-            hsh = hash_file(path)
+            w, h = _image_shape(im)
+            timestamp = _image_timestamp(im)
+            mime = _image_mime_type(im)
+            hsh = _hash_file(path)
             self._remove_file(path)
             print("Adding file %s" % path)
             self._insert("Photos", hsh, w, h, timestamp)
@@ -236,7 +236,7 @@ class CAS:
         if c.fetchone() is None:
             print("Removing photo %s" % hsh)
             c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
-            thumb_path = os.path.join(self.thumbs_dir, hsh[:2], hsh[2:] + ".jpg")
+            thumb_path = os.path.join(self.thumbs_dir, hsh[:2], hsh[2:] + ".jpeg")
             if os.path.isfile(thumb_path):
                 os.remove(thumb_path)
         self.con.commit()
