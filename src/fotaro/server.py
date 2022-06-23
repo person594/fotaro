@@ -6,7 +6,8 @@ import json
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from http.cookies import BaseCookie
-from importlib.resources import files
+import importlib.resources
+import pathlib
 from typing import Optional, Dict, Any, List
 
 
@@ -28,10 +29,11 @@ def run_server(data_dir: str) -> None:
                 path = "photos.html"
             if "." not in path:
                 path = path + ".html"
-            path = files('fotaro.data.static').joinpath(path)
-            print(path)
-            if path.exists:
-                contents = path.read_bytes()
+            parts = pathlib.Path(path).parts
+            dotpath = '.'.join(('fotaro', 'data', 'static') + parts[:-1])
+            resource = parts[-1]
+            if importlib.resources.is_resource(dotpath, resource):
+                contents = importlib.resources.read_binary(dotpath, resource)
                 self.send_response(200)
                 mime, _ = mimetypes.guess_type(path)
                 if mime is None:
@@ -254,6 +256,6 @@ def run_server(data_dir: str) -> None:
 
     # Server settings
     # Choose port 8080, for port 80, which is normally used for a http server, you need root access
-    server_address = ('127.0.0.1', 8081)
+    server_address = ('', 8081)
     httpd = HTTPServer(server_address, RequestHandler)
     httpd.serve_forever()

@@ -17,6 +17,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies = [
+    "Pillow >= 9.1.1",
+    "toml >= 0.10.2",
+    "docopt >= 0.6.2"
+]
+
 [project.urls]
 "Homepage" = "https://github.com/person594/fotaro"
 
