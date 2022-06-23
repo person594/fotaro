@@ -49,13 +49,13 @@ class Fotaro:
     def add_photos_to_album(self, hshes: List[str], album_name: str) -> None:
         c = self.con.cursor()
         for hsh in hshes:
-            c.execute("INSERT INTO Albums VALUES (?, ?)", hsh, album_name)
+            c.execute("INSERT INTO Albums VALUES (?, ?)", (hsh, album_name))
         self.con.commit()
 
     def remove_photos_from_album(self, hshes: List[str], album_name: str) -> None:
         c = self.con.cursor()
         for hsh in hshes:
-            c.execute("DELETE FROM Albums WHERE Hash=? AND Album=?", hsh, album_name)
+            c.execute("DELETE FROM Albums WHERE Hash=? AND Album=?", (hsh, album_name))
         self.con.commit()
 
 
@@ -65,9 +65,8 @@ class Fotaro:
             return self.cas.list_all_photos(), False
         else:
             c = self.con.cursor();
-            c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (album_name))
-            result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
-            return list(result), True
+            c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (list_name,))
+            return c.fetchall(), True
 
     def run_daemon(self):
         while True:
