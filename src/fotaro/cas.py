@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import io
-import pickle
+import json
 import time
 from datetime import datetime
 import hashlib
@@ -11,9 +11,10 @@ import tarfile
 from typing import List, Optional, Any, Tuple, IO, Iterator, overload, cast
 
 from PIL import Image
-import sqlite3 as lite
+import sqlite3
 
-from util import *
+from .component import Component
+from .util import *
 
 def _hash_file(path: str) -> str:
     m = hashlib.sha256()
@@ -52,34 +53,30 @@ def _image_shape(im: Image.Image) -> Tuple[int, int]:
     return rw, rh
 
 
-class CAS:
-
+class CAS(Component):
     @staticmethod
-    def make(data_dir: str, content_dirs: List[str], thumb_height: int = 350) -> CAS:
-        os.mkdir(data_dir)
+    def make(data_dir: str, con: sqlite3.Connection) -> None:
         thumbs_dir = os.path.join(data_dir, "thumbs")
         os.mkdir(thumbs_dir)
-        db_file = os.path.join(data_dir, "cas.db")
-        config_path = os.path.join(data_dir, '.config.pkl')
-        with open(config_path, 'wb') as f:
-            pickle.dump((content_dirs, thumb_height), f)
-        con = lite.connect(db_file)
         c = con.cursor()
         c.execute("CREATE TABLE Photos(Hash TEXT NOT NULL PRIMARY KEY, Width INT, Height INT, Timestamp INT)")
         c.execute("CREATE TABLE Files(Path TEXT NOT NULL PRIMARY KEY, Hash TEXT NOT NULL, Modified INT, Mime TEXT NOT NULL)")
         con.commit()
-        return CAS(data_dir)
        
-    def __init__(self, data_dir: str) -> None:
-        db_file = os.path.join(data_dir, "cas.db")
+    def __init__(self, data_dir: str,
+                 con: sqlite3.Connection,
+                 content_dirs: List[str],
+                 thumb_height: str = 350,
+                 preferred_extensions: List[str] = [".jpeg", ".png", ".gif", ".bmp", ".svg"]
+                 ) -> None:
+        self.data_dir = data_dir
+        self.con = con
+
         self.thumbs_dir = os.path.join(data_dir, "thumbs")
-        config_path = os.path.join(data_dir, '.config.pkl')
-        with open(config_path, 'rb') as f:
-            self.content_dirs, self.thumb_height = pickle.load(f)
-        self.preferred_extensions = {
-            ".jpeg", ".png", ".gif", ".bmp", ".svg"
-        }
-        self.con = lite.connect(db_file)
+        self.content_dirs = content_dirs
+        self.thumb_height = thumb_height
+        
+        self.preferred_extensions = set(preferred_extensions)
 
     def list_all_photos(self) -> List[Tuple[str, int, int]]:
         c = self.con.cursor()
@@ -87,23 +84,8 @@ class CAS:
         result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
         return list(result)
 
-    # returns: list of (hash, width, height), editable
-    def get_list(self, list_name: str) -> Tuple[List[Tuple[str, int, int]], bool]:
-        if list_name == "all":
-            return self.list_all_photos(), False
-        else:
-            album_name = escape("Album::" + list_name)
-            album_identifier = escape_identifier("Album::" + list_name)
-            c = self.con.cursor();
-            c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=%s" % album_name)
-            r = c.fetchone()
-            if r is not None:
-                c.execute("SELECT Photos.Hash, Width, Height FROM %s INNER JOIN Photos ON %s.Hash = Photos.Hash ORDER BY Photos.Timestamp" % (album_identifier, album_identifier))
-                result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
-                return list(result), True
-            else:
-                return [], True
 
+    """
     def get_albums(self) -> List[str]:
         c = self.con.cursor();
         c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'Album::%'")
@@ -123,16 +105,11 @@ class CAS:
         for hsh in hashes:
             c.execute("DELETE FROM %s WHERE Hash=%s" % (album_identifier, escape(hsh)))
         self.con.commit()
-
-    def _insert(self, table: str, *args: Any) -> None:
-        c = self.con.cursor()
-        args_str = ", ".join([escape(arg) for arg in args])
-        c.execute("REPLACE INTO %s VALUES(%s)" % (table, args_str))
-        self.con.commit()
-
+    """
+    
     def hash_to_path_mime(self, hsh: str) -> Optional[Tuple[str, str]]:
         c = self.con.cursor()
-        c.execute("SELECT Path, Mime from Files WHERE Hash=%s" % escape(hsh))
+        c.execute("SELECT Path, Mime from Files WHERE Hash=?", (hsh,))
         r = c.fetchone()
         if r is None:
             return None
@@ -198,7 +175,7 @@ class CAS:
     
     def db_file_last_modified(self, path: str) -> Optional[str]:
         c = self.con.cursor()
-        c.execute("SELECT Modified FROM Files WHERE Path=%s" % escape(path))
+        c.execute("SELECT Modified FROM Files WHERE Path=?", (path,))
         r = cast(Optional[Tuple[str]], c.fetchone())
         if r is not None:
             return r[0]
@@ -215,33 +192,35 @@ class CAS:
             hsh = _hash_file(path)
             self._remove_file(path)
             print("Adding file %s" % path)
-            self._insert("Photos", hsh, w, h, timestamp)
-            self._insert("Files", path, hsh, modified, mime)
+            c = self.con.cursor()
+            c.execute("REPLACE INTO Photos VALUES(?, ?, ?, ?)", (hsh, w, h, timestamp))
+            c.execute("REPLACE INTO Files VALUES(?, ?, ?, ?)", (path, hsh, modified, mime))
+            self.con.commit()
             self.get_thumb(hsh)
         except OSError:
             pass
 
     def _remove_file(self, path: str) -> None:
         c = self.con.cursor()
-        c.execute("SELECT Hash FROM Files WHERE Path=%s" % escape(path))
+        c.execute("SELECT Hash FROM Files WHERE Path=?", (path,))
         hsh = c.fetchone()
         if hsh is None:
             # path was not in the db
             return
         hsh = hsh[0]
         print("Removing file %s" % path)
-        c.execute("DELETE FROM Files WHERE Path=%s" % escape(path))
+        c.execute("DELETE FROM Files WHERE Path=?", (path,))
         # if that was the only copy of the photo, remove it from the photos table
-        c.execute("SELECT * FROM Files WHERE HASH=%s" % escape(hsh))
+        c.execute("SELECT * FROM Files WHERE HASH=?", (hsh,))
         if c.fetchone() is None:
             print("Removing photo %s" % hsh)
-            c.execute("DELETE FROM Photos WHERE HASH=%s" % escape(hsh))
+            c.execute("DELETE FROM Photos WHERE HASH=?", (hsh,))
             thumb_path = os.path.join(self.thumbs_dir, hsh[:2], hsh[2:] + ".jpeg")
             if os.path.isfile(thumb_path):
                 os.remove(thumb_path)
         self.con.commit()
             
-    def update_dir(self) -> None:
+    def update(self) -> None:
         # get all the paths in the fs
         fs_paths_modified = {}
         for path in self.content_dirs:
@@ -252,7 +231,7 @@ class CAS:
                     fs_paths_modified[fs_path] = fs_modified
             # query all the paths in the db, along with the modified date
             c = self.con.cursor()
-            c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE '%s%%'" % str_escape(path))
+            c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE ?", (path + "%",))
             db_paths_modified = {}
             for db_path, db_modified in c.fetchall():
                 db_paths_modified[db_path] = db_modified

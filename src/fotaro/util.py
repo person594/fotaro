@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+"""
+
 def escape(x: Any) -> str:
     if x is None:
         return "NULL"
@@ -16,6 +18,8 @@ def str_escape(s: str) -> str:
 
 def escape_identifier(s: str) -> str:
     return '"' + s.replace('"', '""') + '"'
+
+"""
 
 def now_timestamp() -> int:
     return utc_to_timestamp(datetime.now(timezone.utc))

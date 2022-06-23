@@ -1,0 +1,24 @@
+[build-system]
+requires = ["flit_core>=3.2"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "fotaro"
+version = "0.0.1"
+authors = [
+  { name="Sean Papay", email="sean.papay@gmail.com" },
+]
+description = "A tool for organizing photo collections and a webserver for viewing them"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/person594/fotaro"
+
+[project.scripts]
+fotaro = "fotaro:_main"
