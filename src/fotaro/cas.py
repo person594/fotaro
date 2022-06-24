@@ -284,6 +284,11 @@ class CAS(Component):
             if os.path.isfile(thumb_path):
                 os.remove(thumb_path)
 
+    def daemon(self):
+        while True:
+            self.update()
+            time.sleep(0.1)
+                
     def update(self) -> None:
         # get all the paths in the fs
         fs_paths_modified = {}
@@ -293,7 +298,7 @@ class CAS(Component):
                     fs_path = os.path.join(dirpath, fname)
                     fs_modified = int(os.path.getmtime(fs_path))
                     fs_paths_modified[fs_path] = fs_modified
-            # query all the paths in the db, along with the modified date
+            # query all the paths in the db, along with the modified te
             with self.fo.con(True) as c:
                 c.execute("SELECT Path, Modified FROM Files WHERE Path LIKE ?", (path + "%",))
                 res = c.fetchall()

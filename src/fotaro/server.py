@@ -11,11 +11,9 @@ import pathlib
 from typing import Optional, Dict, Any, List
 
 
-from fotaro import Fotaro
 
 
-def run_server(data_dir: str) -> None:
-    fo = Fotaro(data_dir)
+def run_server(fo) -> None:
     
     class RequestHandler(BaseHTTPRequestHandler):
         def send_cookie(self, c: BaseCookie) -> None:

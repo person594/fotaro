@@ -6,7 +6,7 @@ import threading
 
 from typing import List, Tuple
 
-
+from .server import run_server
 from .cas import CAS
 from .session_manager import SessionManager
 
@@ -145,10 +145,11 @@ class Fotaro:
                 c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (list_name,))
                 return c.fetchall(), True
 
-    def run_daemon(self):
-        # TODO multithreading/processing
-        while True:
-            #self.cas.update()
-            for plugin in self.plugins.values():
-                plugin.update()
-            time.sleep(1)
+    def run(self):
+        server_thread = threading.Thread(target=run_server, args=(self,))
+        server_thread.start()
+        cas_thread = threading.Thread(target=self.cas.daemon)
+        cas_thread.start()
+        for plugin in self.plugins.values():
+            plugin_thread = threading.Thread(target=plugin.daemon)
+            plugin_thread.start()

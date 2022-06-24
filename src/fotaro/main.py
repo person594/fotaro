@@ -2,8 +2,7 @@
 
 Usage:
   fotaro make <data-dir>
-  fotaro serve <data-dir>
-  fotaro daemon <data-dir>
+  fotaro run <data-dir>
 """
 
 from multiprocessing import Process
@@ -20,11 +19,9 @@ def _main():
     data_dir = args["<data-dir>"]
     if args["make"]:
         Fotaro.make(data_dir)
-    elif args["serve"]:
-        run_server(data_dir)
-    elif args["daemon"]:
+    elif args["run"]:
         fo = Fotaro(data_dir)
-        fo.run_daemon()
+        fo.run()
 
 
 if __name__ == "__main__":
