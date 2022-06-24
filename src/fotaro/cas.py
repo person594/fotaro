@@ -124,7 +124,7 @@ class CAS(Component):
     def list_all_photos(self) -> List[Tuple[str, int, int]]:
         with self.fo.con(True) as c:
             c.execute("SELECT Hash, Width, Height FROM Photos ORDER BY Timestamp DESC")
-        result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
+            result = cast(Iterator[Tuple[str, int, int]], c.fetchall())
         return list(result)
 
 
