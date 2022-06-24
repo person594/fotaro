@@ -22,12 +22,12 @@ class NoSuchUserException(Exception):
 class SessionManager(Component):
 
     @staticmethod
-    def make(data_dir: str, con: sqlite3.Connection) -> None:
+    def make(data_dir: str, con: "ManagedDBConnection") -> None:
         import getpass
-        
-        c = con.cursor()
-        c.execute("CREATE TABLE Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
-        c.execute("CREATE TABLE Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
+
+        with con() as c:
+            c.execute("CREATE TABLE Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
+            c.execute("CREATE TABLE Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
 
         # make default user
         username = input("Enter default username: ")
@@ -42,61 +42,51 @@ class SessionManager(Component):
         m = hashlib.sha256()
         m.update(bytes(password, encoding="utf-8") + salt)
         passhash = m.digest()
-        c.execute("INSERT INTO Users VALUES(?, ?, ?)", (username, salt.hex(), passhash.hex()))
-        con.commit()
+        with con() as c:
+            c.execute("INSERT INTO Users VALUES(?, ?, ?)", (username, salt.hex(), passhash.hex()))
     
-    def __init__(self, data_dir: str, con: sqlite3.Connection) -> None:
-        self.con = con
+    def __init__(self, fo) -> None:
+        self.fo = fo
         self.max_sessions_per_user = 64
         self.short_term_session_timeout = timedelta(days=1)
         self.long_term_session_timeout = timedelta(days=365)
-        c = self.con.cursor()
-
-        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='Users'")
-        if c.fetchone() is None:
-            # if the table doesn't exist, initialize it with a root
-            c.execute("CREATE TABLE Users(Username TEXT NOT NULL PRIMARY KEY, Salt TEXT NOT NULL, Passhash TEXT NOT NULL)")
-            c.execute("CREATE TABLE Sessions(SessionID TEXT NOT NULL PRIMARY KEY, Username TEXT NOT NULL, Expires INTEGER NOT NULL)")
-            self.con.commit()
-            self.make_user('root', 'root')
 
     # call this before we read from the sessions table
     def garbage_collect_sessions(self) -> None:
-        c = self.con.cursor()
         now = now_timestamp()
-        c.execute("DELETE FROM Sessions WHERE Expires<?", (now,))
-        self.con.commit()
+        with self.fo.con() as c:
+            c.execute("DELETE FROM Sessions WHERE Expires<?", (now,))
         
     def make_user(self, username: str, password: str) -> None:
-        c = self.con.cursor()
-        c.execute("SELECT * FROM Users WHERE Username=%s", (username,))
-        if c.fetchone() is not None:
-            raise UserAlreadyExistsException(username)
+        with self.fo.con(True) as c:
+            c.execute("SELECT * FROM Users WHERE Username=%s", (username,))
+            if c.fetchone() is not None:
+                raise UserAlreadyExistsException(username)
         salt = os.urandom(32)
         m = hashlib.sha256()
         m.update(bytes(password, encoding="utf-8") + salt)
         passhash = m.digest()
-        c.execute("INSERT INTO Users VALUES(?, ?, ?)", (username, salt.hex(), passhash.hex()))
-        self.con.commit()
+        with self.fo.con() as c:
+            c.execute("INSERT INTO Users VALUES(?, ?, ?)", (username, salt.hex(), passhash.hex()))
 
     def set_password(self, username: str, password: str) -> None:
-       c = self.con.cursor()
-       c.execute("SELECT * FROM Users WHERE Username=?", (username,))
-       if c.fetchone() is None:
-           raise NoSuchUserException(username)
-       salt = os.urandom(32)
-       m = hashlib.sha256()
-       m.update(bytes(password, encoding="utf-8") + salt)
-       passhash = m.digest()
-       c.execute("UPDATE Users SET Salt=?, Passhash=? WHERE Username=?", (salt.hex(), passhash.hex(), username))
-       self.con.commit()
-        
+        with self.fo.con(True) as c:
+            c.execute("SELECT * FROM Users WHERE Username=?", (username,))
+            if c.fetchone() is None:
+                raise NoSuchUserException(username)
+        salt = os.urandom(32)
+        m = hashlib.sha256()
+        m.update(bytes(password, encoding="utf-8") + salt)
+        passhash = m.digest()
+        with self.fo.con() as c:
+            c.execute("UPDATE Users SET Salt=?, Passhash=? WHERE Username=?", (salt.hex(), passhash.hex(), username))
+
     def make_session(self, username: str, long_term: bool = False) -> Optional[SimpleCookie]:
         self.garbage_collect_sessions()
-        c = self.con.cursor()
-        c.execute("SELECT SessionID FROM Sessions WHERE Username=?", (username,))
-        if len(list(c.fetchall())) > self.max_sessions_per_user:
-            return None
+        with self.fo.con(True) as c:
+            c.execute("SELECT SessionID FROM Sessions WHERE Username=?", (username,))
+            if len(list(c.fetchall())) > self.max_sessions_per_user:
+                return None
         sess_id = os.urandom(32).hex()
         if long_term:
             expires = datetime.now(timezone.utc) + self.long_term_session_timeout
@@ -108,29 +98,28 @@ class SessionManager(Component):
         cookie["sess_id"] = sess_id
         if long_term:
             cookie["sess_id"]["expires"] = format_datetime(expires, True)
-        c.execute("INSERT INTO Sessions VALUES(?, ?, ?)", (sess_id, username, utc_to_timestamp(expires)))
-        self.con.commit()
+        with self.fo.con() as c:
+            c.execute("INSERT INTO Sessions VALUES(?, ?, ?)", (sess_id, username, utc_to_timestamp(expires)))
         return cookie
 
     def session_user(self, sess_id: str) -> Optional[str]:
         self.garbage_collect_sessions()
-        c = self.con.cursor()
-        c.execute("SELECT Username FROM Sessions WHERE SessionID=?", (sess_id,))
-        r = c.fetchone()
+        with self.fo.con(True) as c:
+            c.execute("SELECT Username FROM Sessions WHERE SessionID=?", (sess_id,))
+            r = c.fetchone()
         if r is None:
             return None
         assert isinstance(r[0], str)
         return r[0]
 
     def end_session(self, sess_id: str) -> None:
-        c = self.con.cursor()
-        c.execute("DELETE FROM Sessions WHERE SessionID=?", (sess_id,))
-        self.con.commit()
+        with self.fo.con() as c:
+            c.execute("DELETE FROM Sessions WHERE SessionID=?", (sess_id,))
 
     def authenticate(self, username: str, password: str) -> bool:
-        c = self.con.cursor()
-        c.execute("SELECT * FROM Users WHERE Username=?", (username,))
-        r = c.fetchone()
+        with self.fo.con(True) as c:
+            c.execute("SELECT * FROM Users WHERE Username=?", (username,))
+            r = c.fetchone()
         if r is None:
             # user not found
             return False

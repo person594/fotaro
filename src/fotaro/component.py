@@ -6,6 +6,4 @@ class Component:
         ...
 
     def __init__(self, data_dir, **kwargs) -> None:
-        self.data_dir = data_dir
-        self.db_file = os.path.join(data_dir, "fotaro.db")
-        self.con = lite.connect(self.db_file)
+        ...
