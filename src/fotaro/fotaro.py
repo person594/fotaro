@@ -20,11 +20,11 @@ class ManagedDBConnection:
             self.readonly = readonly
 
         def __enter__(self):
+            self.mcon._lock.acquire()
             if self.readonly:
                 self.cursor = self.mcon._con_ro.cursor()
                 
             else:
-                self.mcon._lock.acquire()
                 self.cursor = self.mcon._con.cursor()
             return self.cursor
         
@@ -32,7 +32,8 @@ class ManagedDBConnection:
             self.cursor.close()
             if not self.readonly:
                 self.mcon._con.commit()
-                self.mcon._lock.release()
+            self.mcon._lock.release()
+
 
     def __init__(self, db_file):
         self.db_file = db_file
