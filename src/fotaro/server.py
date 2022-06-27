@@ -10,6 +10,15 @@ import importlib.resources
 import pathlib
 from typing import Optional, Dict, Any, List
 
+import jinja2
+from jinja2 import Environment, PackageLoader, select_autoescape
+
+from .util import unflatten_dict
+
+env = Environment(
+    loader=PackageLoader("fotaro.data"),
+    autoescape=select_autoescape()
+)
 
 
 
@@ -19,14 +28,23 @@ def run_server(fo) -> None:
         def send_cookie(self, c: BaseCookie) -> None:
             for key in c:
                 self.send_header('Set-Cookie', c[key].output(header=''))
-                
+
+        def serve_template(self, path: str) -> None:
+            template = env.get_template(path)
+            contents = template.render(fo=fo)
+            contents = bytes(contents, 'utf-8')
+            self.send_response(200)
+            mime, _ = mimetypes.guess_type(path)
+            if mime is None:
+                mime = "application/octet-stream"
+            self.send_header('Content-type', mime)
+            self.end_headers()
+            self.wfile.write(contents)
+
             
-        def serve_static(self, path: List[str]) -> None:
-            path = os.path.normpath(path)[1:]
-            if path == "":
-                path = "photos.html"
-            if "." not in path:
-                path = path + ".html"
+            
+            
+        def serve_static(self, path: str) -> None:
             parts = pathlib.Path(path).parts
             dotpath = '.'.join(('fotaro', 'data', 'static') + parts[:-1])
             resource = parts[-1]
@@ -152,9 +170,19 @@ def run_server(fo) -> None:
                     fo.sm.end_session(sess_id)
                 self.serve_json(None)
                 return
-                    
 
-            self.serve_static(path)
+            # we are serving a file; make sure the path looks like a path to a file
+            path = os.path.normpath(path)[1:]
+            if path == "":
+                path = "photos.html"
+            if "." not in path:
+                path = path + ".html"
+                    
+            try:
+                self.serve_template(path)
+            except jinja2.exceptions.TemplateNotFound:
+                self.serve_static(path)
+            
             
         def do_POST(self) -> None:
             path = self.path.rsplit("?", 1)[0]
@@ -250,6 +278,22 @@ def run_server(fo) -> None:
                 else:
                     self.serve_text("Invalid password", 401)
                 return
+            elif path == "/search":
+                post_data = unflatten_dict(post_data)
+                try:
+                    search_list = post_data['list']
+                except KeyError:
+                    self.serve_400()
+                breakpoint()
+                if self.has_read_permission(search_list):
+                    sort_by = None
+                    for sb in self.get_sort_bys():
+                        if sb.name == request['sortBy']:
+                            sort_by = sb
+                            break
+                    self.serve_json(fo.get_search_results([], sort_by))
+                else:
+                    self.serve_json([])
                 
 
     # Server settings

@@ -44,7 +44,7 @@
 
       .sidebarButtonSelected{
 	  opacity: 1;
-	  fill: indigo;
+	  color: indigo;
 	  width: 36px;
 	  height: 36px;
 	  margin-top: 2px;
@@ -55,7 +55,7 @@
 
       .sidebarButtonLoggedIn{
 	  opacity: 1;
-	  fill: green;
+	  color: green;
 	  width: 36px;
 	  height: 36px;
 	  margin-top: 2px;
@@ -69,7 +69,7 @@
       }
 
       .sidebarButtonDeselect{
-	  fill: red
+	  color: red
       }
 
       .sidebarButtonHidden{
@@ -154,7 +154,7 @@
 	  display: flex;
 	  justify-content: center; /* align horizontal */
 	  align-items: center; /* align vertical */
-	  fill: white;
+	  color: white;
 	  font-size: 75px;
 	  font-weight: 900;
 	  transition: 0.2s;
@@ -179,11 +179,16 @@
 	  width: 5vmax;
 	  height: 5vmax;
 	  border-radius: 100%;
+	  color: white;
       }
 
       .viewModalPrevButton:hover, .viewModalNextButton:hover, .modalCloseButton:hover{
 	  background: rgba(0,0,0,0.6);
 	  opacity: 1;
+      }
+
+      .modalCloseButton:hover{
+	  color: red;
       }
 
       div.modal{
@@ -192,6 +197,9 @@
 	  width: 20%;
 	  margin: auto;
 	  margin-top: 10%;
+      }
+
+      div.section{
       }
 
       div.errorText{
@@ -228,8 +236,9 @@
 	  color: black;
       }
 
+      
       .form input{
-	  width: 100%;
+	  /*width: 100%;*/
 	  margin: 3px;
       }
 
@@ -241,26 +250,26 @@
     <div id="viewModalBackground" class="modalBackground">
       <a href="#" onclick="viewModalClose()">
 	<svg id="viewModalClose" class="modalCloseButton" viewBox="0 0 24 24">
-	  <use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-circle-x"></use>
 	</svg>
       </a>
       <a href="#" onclick="viewModalPrev()">
 	<svg id="viewModalPrev" class="viewModalPrevButton" viewBox="0 0 24 24">
-	  <use xlink:href="icons/sharp-chevron_left-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-chevron-left"></use>
 	</svg>	
       </a>
       <img id="viewModalPlaceholderImg" class="viewModalImg">
       <img id="viewModalImg" class="viewModalImg">
       <a href="#" onclick="viewModalNext()">
 	<svg id="viewModalNext" class="viewModalNextButton" viewBox="0 0 24 24">
-	  <use xlink:href="icons/sharp-chevron_right-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-chevron-right"></use>
 	</svg>
       </a>
     </div>
 
     <div id="promptModalBackground" class="modalBackground">
       <svg id="promptModalClose" class="modalCloseButton" viewBox="0 0 24 24">
-	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+	<use xlink:href="icons/tabler-sprite.svg#tabler-circle-x"></use>
       </svg>
       <div id="promptModal" class="modal">
       </div>
@@ -268,7 +277,7 @@
 
     <div id="loginModalBackground" class="modalBackground">
       <svg id="loginModalClose" class="modalCloseButton" viewBox="0 0 24 24">
-	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+	<use xlink:href="icons/tabler-sprite.svg#tabler-circle-x"></use>
       </svg>
       <div id="loginModal" class="modal">
 	<div id="loginModalErrorText" class="errorText" style="display: none;"></div>
@@ -281,8 +290,8 @@
     </div>
 
     <div id="passwordChangeModalBackground" class="modalBackground">
-      <svg id="passwordChangeModalClose" class="modalCloseButton" viewBox="0 0 24 24">
-	<use xlink:href="icons/sharp-close-24px.svg#Sharp"></use>
+      <svg id="passwordChangeModalClose" class="modalCloseButton" viewBox="0 0 24 24"
+	<use xlink:href="icons/tabler-sprite.svg#tabler-circle-x"></use>
       </svg>
       <div id="passwordChangeModal" class="modal">
 	<div id="passwordChangeModalErrorText" class="errorText" style="display: none;"></div>
@@ -295,50 +304,86 @@
       </div>
     </div>
 
+    <div id="searchModalBackground" class="modalBackground">
+      <svg id="searchModalClose" class="modalCloseButton" viewBox="0 0 24 24">
+	<use xlink:href="icons/tabler-sprite.svg#tabler-circle-x"></use>
+      </svg>
+      <div id="searchModal" class="modal">
+	<div id="searchModalErrorText" class="errorText" style="display: none;"></div>
+	<form class="form" id="searchForm" action="javascript:void(0);">
+	  <div class="section" id="searchFormSortBy">
+	    <h3>Sort by:</h3>
+	    {% for sort_by in fo.get_sort_bys() %}
+      	      <input type="radio" name="sortBy.name" value="{{sort_by.name}}" id="searchFormSortBy.{{sort_by.name}}" autocomplete="off">
+	      <label for="searchFormSortBy.{{sort_by.name}}">{{sort_by.name}}</label> <br>
+	      {% for field_name, dtype in sort_by.fields.items() %}
+                  {% if dtype == 'text' %}
+	          {% set input_id = "searchFormSortBy." + sort_by.name + "." + field_name %}
+	          <label for="{{input_id}}">{{field_name}}: </label>
+	          <input type="text" name="sortBy.settings.{{sort_by.name}}.{{field_name}}" id="{{input_id}}">
+	        {% endif %}
+	      {% endfor %}
+	    {% endfor %}
+	  </div>
+	  <input type="submit" value="Go!">
+	</form>
+      </div>
+    </div>
+
 
     <div id="sidebar" class="sidebar">
       <div title="Log in">
 	<svg id="sidebarButtonLogin" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-account_box-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-user-circle"></use>
 	</svg>
       </div>
 
       <div title="Albums">
 	<svg id="sidebarButtonAlbums" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-collections-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-album"></use>
 	</svg>
       </div>
 
       <hr>
 
-      <div title="View">
-	<svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-fullscreen-24px.svg#Sharp"></use>
+      <div title="Search">
+	<svg id="sidebarButtonSearch" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-search"></use>
 	</svg>
       </div>
+
+
+
+      <div title="View">
+	<svg id="sidebarButtonView" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-photo"></use>
+	</svg>
+      </div>
+
+
       <div title="Select">
 	<svg id="sidebarButtonSelect" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use href="/icons/sharp-check-24px.svg#Sharp">
+	  <use href="/icons/tabler-sprite.svg#tabler-select">
 	</svg>
       </div>
       <div title="Deselect all">
 	<svg id="sidebarButtonDeselect" class="sidebarButton sidebarButtonDeselect sidebarButtonHidden" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-cancel-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-square-x"></use>
 	</svg>
       </div>
       <div Title="Add to album">
 	<svg id="sidebarButtonAdd" class="sidebarButton" viewbox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-add-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-circle-plus"></use>
 	</svg>
       </div>
       <div Title="Remove from album">
 	<svg id="sidebarButtonRemove" class="sidebarButton" viewbox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-remove-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-circle-minus"></use>
 	</svg>
       </div>
       <div title="Download">
 	<svg id="sidebarButtonDownload" class="sidebarButton" viewBox="0 0 24 24" onclick="sidebarButtonHook(this)">
-	  <use xlink:href="icons/sharp-get_app-24px.svg#Sharp"></use>
+	  <use xlink:href="icons/tabler-sprite.svg#tabler-download"></use>
 	</svg>
       </div>
 

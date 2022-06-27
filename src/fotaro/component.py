@@ -7,3 +7,10 @@ class Component:
 
     def __init__(self, data_dir, **kwargs) -> None:
         ...
+
+
+    def get_sort_bys(self):
+        return []
+
+    def get_search_filters(self):
+        return []

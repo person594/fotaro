@@ -21,6 +21,10 @@ listName = null;
 
 username = null;
 
+
+// pretent we're in jquery
+var $ = function(id) { return document.getElementById(id); };
+
 var getJSON = function(url) {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
@@ -71,43 +75,44 @@ function downloadBlob(blob, filename) {
     a.remove();
 }
 
-flow = document.getElementById('flow');
+flow = $('flow');
 
-promptModalBackground = document.getElementById("promptModalBackground");
-promptModal = document.getElementById("promptModal");
+promptModalBackground = $("promptModalBackground");
+promptModal = $("promptModal");
 
-loginModalBackground = document.getElementById("loginModalBackground");
-loginModal = document.getElementById("loginModal");
-loginModalCloseButton = document.getElementById("loginModalClose");
-loginModalErrorText = document.getElementById("loginModalErrorText");
-loginForm = document.getElementById("loginForm");
-loginFormUsername = document.getElementById("loginFormUsername");
-loginFormPassword = document.getElementById("loginFormPassword");
+loginModalBackground = $("loginModalBackground");
+loginModal = $("loginModal");
+loginModalCloseButton = $("loginModalClose");
+loginModalErrorText = $("loginModalErrorText");
+loginForm = $("loginForm");
+loginFormUsername = $("loginFormUsername");
+loginFormPassword = $("loginFormPassword");
+
+passwordChangeModalBackground = $("passwordChangeModalBackground");
+passwordChangeModal = $("passwordChangeModal");
+passwordChangeModalCloseButton = $("passwordChangeModalClose");
+passwordChangeModalErrorText = $("passwordChangeModalErrorText");
+passwordChangeForm = $("passwordChangeForm");
+passwordChangeFormOldPassword = $("passwordChangeFormOldPassword");
+passwordChangeFormNewPassword1 = $("passwordChangeFormNewPassword1");
+passwordChangeFormNewPassword2 = $("passwordChangeFormNewPassword2");
 
 
-passwordChangeModalBackground = document.getElementById("passwordChangeModalBackground");
-passwordChangeModal = document.getElementById("passwordChangeModal");
-passwordChangeModalCloseButton = document.getElementById("passwordChangeModalClose");
-passwordChangeModalErrorText = document.getElementById("passwordChangeModalErrorText");
-passwordChangeForm = document.getElementById("passwordChangeForm");
-passwordChangeFormOldPassword = document.getElementById("passwordChangeFormOldPassword");
-passwordChangeFormNewPassword1 = document.getElementById("passwordChangeFormNewPassword1");
-passwordChangeFormNewPassword2 = document.getElementById("passwordChangeFormNewPassword2");
+viewModalBackground = $("viewModalBackground")
+viewModalImg = $("viewModalImg")
+viewModalPlaceholderImg = $("viewModalPlaceholderImg")
+viewModalCloseButton = $("viewModalClose");
 
+sidebarButtonLogin = $("sidebarButtonLogin");
+sidebarButtonAlbums = $("sidebarButtonAlbums");
+sidebarButtonSearch = $("sidebarButtonSearch");
+sidebarButtonView = $("sidebarButtonView");
+sidebarButtonSelect = $("sidebarButtonSelect");
+sidebarButtonDeselect = $("sidebarButtonDeselect");
+sidebarButtonAdd = $("sidebarButtonAdd");
+sidebarButtonRemove = $("sidebarButtonRemove");
+sidebarButtonDownload = $("sidebarButtonDownload");
 
-viewModalBackground = document.getElementById("viewModalBackground")
-viewModalImg = document.getElementById("viewModalImg")
-viewModalPlaceholderImg = document.getElementById("viewModalPlaceholderImg")
-viewModalCloseButton = document.getElementById("viewModalClose");
-
-sidebarButtonLogin = document.getElementById("sidebarButtonLogin");
-sidebarButtonView = document.getElementById("sidebarButtonView");
-sidebarButtonSelect = document.getElementById("sidebarButtonSelect");
-sidebarButtonDeselect = document.getElementById("sidebarButtonDeselect");
-sidebarButtonAdd = document.getElementById("sidebarButtonAdd");
-sidebarButtonRemove = document.getElementById("sidebarButtonRemove");
-sidebarButtonDownload = document.getElementById("sidebarButtonDownload");
-sidebarButtonAlbums = document.getElementById("sidebarButtonAlbums");
 modeButtons = {
     "view": sidebarButtonView,
     "select": sidebarButtonSelect,
@@ -206,6 +211,46 @@ function logout() {
     });
 }
 
+function promptSearch() {
+    $('searchModalBackground').style.display = "block";
+    return new Promise(function(resolve, reject) {
+	$('searchModalClose').onclick = function(){
+	    resolve(null);
+	};
+	$('searchForm').onsubmit = function() {
+	    $('searchModalErrorText').style.display = "none";
+	    search_request = {
+		list: listName
+	    }
+	    elements = $('searchForm').elements;
+	    for (var i = 0; i < elements.length; ++i) {
+		element = elements[i];
+		if (element.tagName.toLowerCase() == 'input') {
+		    switch (element.type) {
+		    case 'text':
+			search_request[element.name] = element.value;
+			break;
+		    case 'radio':
+			if (element.checked) {
+			    search_request[element.name] = element.value;
+			}
+			break;
+		    }
+		}
+	    }
+	    debugger;
+	    post("/search", search_request).then(resolve, function(response) {
+		debugger;
+	    });
+	}
+    }).then(function(result) {
+	if (result != null) {
+	    setUsername(result);
+	}
+	$('searchModalBackground').style.display = "none";
+    });
+}
+
 function prompt(text, options, customText) {
     var modalBackground = promptModalBackground.cloneNode(true);
     var modal = modalBackground.querySelector(".modal")
@@ -274,7 +319,7 @@ function prompt(text, options, customText) {
 }
 
 function flashPhoto(idx) {
-    pe = document.getElementById("photo" + idx);
+    pe = $("photo" + idx);
     pe.style.transition = "0s";
     pe.style.filter = "brightness(200%)"
     wasSelected = pe.classList.contains("photoElementSelected");
@@ -517,7 +562,7 @@ function updateScreenCenterPhoto() {
 	i = Math.floor(centerRow.length / 2)
 	screenCenterPhoto = centerRow[i][3];
     }
-    //el = document.getElementById("photo" + screenCenterPhoto);
+    //el = $("photo" + screenCenterPhoto);
     //el.classList.add("photoElementSelected");
 }
 
@@ -663,6 +708,10 @@ function sidebarButtonHook(button) {
 	    }
 	});
 	break;
+    case sidebarButtonSearch:
+	promptSearch();
+	break;
+	
     case sidebarButtonView:
 	setMode("view");
 	break;
@@ -712,6 +761,21 @@ function sidebarButtonHook(button) {
     
 }
 
+function setList(newPhotoList, newEditable) {
+    photoList = newPhotoList;
+    editable = newEditable;
+    //todo: loadedPhotoElements
+    editableOnlyButtons.forEach(function(button) {
+	if (!editable) {
+	    button.style.display = "none";
+	} else {
+	    button.style.display = "block";
+	}
+    });
+    reflow();
+    loadChunk();
+}
+
 setMode("view");
 
 document.onkeyup = function(e) {
@@ -719,7 +783,7 @@ document.onkeyup = function(e) {
     switch(key) {
     case 27: // esc
 	viewModalClose();
-	break;
+	brek;
     case 37: // left
 	viewModalPrev();
 	break

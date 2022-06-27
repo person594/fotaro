@@ -30,3 +30,32 @@ def utc_to_timestamp(utc: datetime) -> int:
 def timestamp_to_utc(timestamp: int) -> datetime:
     return datetime.fromtimestamp(timestamp, timezone.utc)
 
+
+
+def unflatten_dict(d, delimiter='.'):
+    print(d)
+    unflattened = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            unflattened[k] = unflatten_dict(v, delimiter)
+        else:
+            unflattened[k] = v
+
+    d = unflattened
+    done = False
+    while not done:
+        unflattened = {}
+        done = True
+        for k, v in d.items():
+            if delimiter in k:
+                done = False
+                head, tail = k.rsplit(delimiter, 1)
+                if head not in unflattened or not isinstance(unflattened[head], dict):
+                    unflattened[head] = {}
+                unflattened[head][tail] = v
+            else:
+                unflattened[k] = v
+        d = unflattened
+    return d
+
+        
