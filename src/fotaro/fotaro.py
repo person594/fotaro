@@ -4,12 +4,13 @@ import time
 from importlib import import_module
 import threading
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 from .server import run_server
 from .cas import CAS
 from .session_manager import SessionManager
-from .search import SortBy, SearchFilter
+from .search import Search
+from .formulaic import formulaic
 
 import toml
 
@@ -86,6 +87,8 @@ class Fotaro:
         
         SessionManager.make(data_dir, con)
 
+        Search.make(data_dir, con)
+
         plugins= config.get('plugin', {})
         for plugin_name, plugin_config in plugins.items():
             module_name, class_name = plugin_config['class'].rsplit('.', 1)
@@ -107,6 +110,7 @@ class Fotaro:
 
         self.cas = CAS(self, **self.config.get('CAS', {}))
         self.sm = SessionManager(self, **self.config.get('SessionManager', {}))
+        self.search = Search(self, **self.config.get('Search', {}))
 
 
         self.plugins = {}
@@ -120,29 +124,7 @@ class Fotaro:
             del plugin_config['class']
             self.plugins[plugin_name] = plugin_class(self, **plugin_config)
 
-        self.components = [self.cas, self.sm] + list(self.plugins.values())
-
-
-    def get_sort_bys(self):
-        l = [
-            SortBy(
-                "Timestamp",
-                "Date the photo was taken",
-                {},
-                lambda fields: "Photos.Timestamp",
-                None
-            )
-        ]
-        for component in self.components:
-            l.extend(component.get_sort_bys())
-        return l
-
-    def get_search_filters(self):
-        l = []
-        for component in self.components:
-            l.extend(component.get_search_filters())
-        return l
-
+        self.components = [self.cas, self.sm, self.search] + list(self.plugins.values())
 
     def get_albums(self) -> List[str]:
         with self.con(True) as c:
@@ -168,24 +150,6 @@ class Fotaro:
             with self.con(True) as c:
                 c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (list_name,))
                 return c.fetchall(), True
-
-    def get_search_results(self, filters: List[SearchFilter], sort_by: Optional[SortBy]):
-        list_name = request.get('list', 'all')
-
-        if list_name == "all":
-            result = self.cas.list_all_photos()
-            editable = False
-        else:
-            with self.con(True) as c:
-                c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (list_name,))
-                result = c.fetchall()
-                editable = True
-
-        if sort_by is not None and sort_by.sort_key is not None:
-            result.sort(key=sort_by.sort_key)
-            
-        return result, editable
-
 
     def run(self):
         server_thread = threading.Thread(target=run_server, args=(self,))

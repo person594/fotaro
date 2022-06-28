@@ -280,18 +280,18 @@ def run_server(fo) -> None:
                 return
             elif path == "/search":
                 post_data = unflatten_dict(post_data)
+                breakpoint()
                 try:
                     search_list = post_data['list']
                 except KeyError:
                     self.serve_400()
-                breakpoint()
                 if self.has_read_permission(search_list):
                     sort_by = None
-                    for sb in self.get_sort_bys():
-                        if sb.name == request['sortBy']:
+                    for sb in fo.get_sort_bys():
+                        if sb.name == post_data['sortBy']:
                             sort_by = sb
                             break
-                    self.serve_json(fo.get_search_results([], sort_by))
+                    self.serve_json(fo.get_search_results(search_list, [], sort_by))
                 else:
                     self.serve_json([])
                 

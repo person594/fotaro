@@ -310,23 +310,7 @@
       </svg>
       <div id="searchModal" class="modal">
 	<div id="searchModalErrorText" class="errorText" style="display: none;"></div>
-	<form class="form" id="searchForm" action="javascript:void(0);">
-	  <div class="section" id="searchFormSortBy">
-	    <h3>Sort by:</h3>
-	    {% for sort_by in fo.get_sort_bys() %}
-      	      <input type="radio" name="sortBy.name" value="{{sort_by.name}}" id="searchFormSortBy.{{sort_by.name}}" autocomplete="off">
-	      <label for="searchFormSortBy.{{sort_by.name}}">{{sort_by.name}}</label> <br>
-	      {% for field_name, dtype in sort_by.fields.items() %}
-                  {% if dtype == 'text' %}
-	          {% set input_id = "searchFormSortBy." + sort_by.name + "." + field_name %}
-	          <label for="{{input_id}}">{{field_name}}: </label>
-	          <input type="text" name="sortBy.settings.{{sort_by.name}}.{{field_name}}" id="{{input_id}}">
-	        {% endif %}
-	      {% endfor %}
-	    {% endfor %}
-	  </div>
-	  <input type="submit" value="Go!">
-	</form>
+	{{fo.search.get_request_class().formulaic_html("searchModal")|safe}}
       </div>
     </div>
 
