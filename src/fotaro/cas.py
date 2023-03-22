@@ -32,7 +32,10 @@ def _image_timestamp(im: Image.Image) -> Optional[int]:
     if exif is None:
         return None
     if 36867 in exif:
-        return int(datetime.strptime(exif[36867], '%Y:%m:%d %H:%M:%S').timestamp())
+        try:
+            return int(datetime.strptime(exif[36867], '%Y:%m:%d %H:%M:%S').timestamp())
+        except ValueError:
+            return None
     else:
         return None
 
