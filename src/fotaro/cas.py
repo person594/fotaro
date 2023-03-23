@@ -111,14 +111,14 @@ class CAS(Component):
         if not isinstance(hsh, str):
             raise TypeError("Hashes must be strings")
         with self.fo.con() as c:
-            c.execute("SELECT Photos.Hash, Path, Mime, Width, Height, Timestamp FROM Photos INNER JOIN Files ON Photos.Hash=Files.HASH ORDER BY Path ASC")
+            c.execute("SELECT Photos.Hash, Path, Mime, Width, Height, Timestamp FROM Photos INNER JOIN Files ON Photos.Hash=Files.HASH WHERE Photos.Hash = ? ORDER BY Path ASC", (hsh,))
             r = c.fetchone()
         if r is None:
             raise IndexError("Hash not in CAS")
         else:
             hsh, path, mime, width, height, timestamp = r
             thumb_path, thumb_mime = self._thumb_path_mime(hsh)
-            return CAS.Photo(hsh, path, mime, thumb_path, thumb_mime, width, height, timestamp)        
+            return CAS.Photo(hsh, path, mime, thumb_path, thumb_mime, width, height, timestamp)
         
         
     def list_all_photos(self) -> List[Tuple[str, int, int]]:

@@ -6,7 +6,7 @@ import threading
 
 from typing import List, Tuple, Optional
 
-from .server import run_server
+from .server import Server
 from .cas import CAS
 from .session_manager import SessionManager
 from .search import Search
@@ -89,6 +89,8 @@ class Fotaro:
 
         Search.make(data_dir, con)
 
+        Server.make(data_dir, con)
+
         plugins= config.get('plugin', {})
         for plugin_name, plugin_config in plugins.items():
             module_name, class_name = plugin_config['class'].rsplit('.', 1)
@@ -111,7 +113,7 @@ class Fotaro:
         self.cas = CAS(self, **self.config.get('CAS', {}))
         self.sm = SessionManager(self, **self.config.get('SessionManager', {}))
         self.search = Search(self, **self.config.get('Search', {}))
-
+        self.server = Server(self, **self.config.get('Server', {}))
 
         self.plugins = {}
         
@@ -124,8 +126,15 @@ class Fotaro:
             del plugin_config['class']
             self.plugins[plugin_name] = plugin_class(self, **plugin_config)
 
-        self.components = [self.cas, self.sm, self.search] + list(self.plugins.values())
+        self.components = [self.cas, self.sm, self.search, self.server] + list(self.plugins.values())
 
+    def __getattr__(self, name):
+        if name.startswith('rec_'):
+            resources = []
+            for component in self.components:
+                resources.extend(getattr(component, name))
+            return resources
+        
     def get_albums(self) -> List[str]:
         with self.con(True) as c:
             c.execute('SELECT DISTINCT Album FROM Albums')
@@ -152,10 +161,9 @@ class Fotaro:
                 return c.fetchall(), True
 
     def run(self):
-        server_thread = threading.Thread(target=run_server, args=(self,))
-        server_thread.start()
-        cas_thread = threading.Thread(target=self.cas.daemon)
-        cas_thread.start()
-        for plugin in self.plugins.values():
-            plugin_thread = threading.Thread(target=plugin.daemon)
-            plugin_thread.start()
+        for component in self.components:
+            component.setup()
+
+        for component in self.components:
+            daemon_thread = threading.Thread(target=component.daemon)
+            daemon_thread.start()

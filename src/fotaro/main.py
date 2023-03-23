@@ -11,8 +11,6 @@ from docopt import docopt
 
 from .fotaro import Fotaro
 
-from .server import run_server
-
 
 def _main():
     args = docopt(__doc__)

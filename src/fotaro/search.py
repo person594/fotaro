@@ -2,6 +2,8 @@ from collections import namedtuple
 from .formulaic import formulaic, field, OneOfField, Option, SubmitField
 from .component import Component
 
+from typing import Optional
+from datetime import datetime
 
 SearchFilter = namedtuple('SearchFilter', ['name', 'description', 'fields', 'sql', 'callback'], defaults=({}, None, None))
 
@@ -17,55 +19,83 @@ class SortBy:
     def description():
         raise NotImplementedError
 
+class SearchFilter:
+    name = "true"
+    def __init__():
+        ...
 
+    def get_clause(self):
+        return "TRUE"
+        
+    def callback(self, photo):
+        return True
+
+class DateRange(SearchFilter):
+    name = "date"
+    def __init__(self, start_date: Optional[datetime], end_date: Optional[datetime] = None):
+        super().__init__("date", "Date", "Find photos taken in a particular date range")
+        self.start_time = start_date
+        self.end_date = end_date
+
+    def get_clause(self):
+        s = "TIMESTAMP IS NOT NULL"
+        if self.start_date is not None:
+            start_timestamp = int(start_date.timestamp())
+            s = f"{s} AND TIMESTAMP >= {start_timestamp}"
+        if self.end_date is not None:
+            end_timestamp = int(start_date.timestamp())
+            s = f"{s} AND TIMESTAMP <= {end_timestamp}"
+        return s
+
+    def callback(self, photo):
+        return True
+    
+class Union(SearchFilter):
+    name = "or"
+    def __init__(self, *filters):
+        super().__init__("or", "Union", "Disjunction of filters")
+        self.filters = list(filters)
+
+    def get_clause(self):
+        return " OR ".join([f"({f.get_clause()})" for f in self.filters])
+
+    def callback(self, photo):
+        for filter in self.filters:
+            if filter.callback(photo):
+                return True
+        return False
+
+class SortBy:
+    def __init__(self, name, description):
+        self.name = name
+        self.description = description
+
+    def get_form_html(self):
+        raise NotImplementedError
+
+    def callback(self, **kwargs):
+        raise NotImplementedError
+
+    
 class Search(Component):
     def __init__(self, fo):
         self.fo = fo
-
-    @property
-    def sort_bys(self):
-        l = []
-        for component in self.fo.components:
-            if hasattr(component, 'get_sort_bys'):
-                for sort_by in component.get_sort_bys():
-                    l.append(formulaic(sort_by))
-        return l
-
-    @property
-    def search_filters(self):
-        l = []
-        for component in self.fo.components:
-            if hasattr(component, 'get_search_filters'):
-                for search_filter in component.get_search_filters():
-                    l.append(formulaic(search_filter))
-        return l
-
-    def get_request_class(self):
-        options = [Option(sb.__name__, sb.description(), sb) for sb in self.sort_bys]
-        @field('sort_by', "Sort by", OneOfField(options))
-        @field('submit', "Go!", SubmitField("/search"))
-        class SearchRequest:
-            def __init__(self, sort_by):
-                self.sort_by = sort_by
-        return SearchRequest
-
-
-    def get_search_results(self, search_request):
-        breakpoint()
+        self.rec_search_filters = [DateRange, Union]
+        self.rec_
         
-        if sort_by is not None:
-            breakpoint()
-        
-        if search_list == "all":
-            result = self.cas.list_all_photos()
-            editable = False
-        else:
-            with self.con(True) as c:
-                c.execute("SELECT Photos.Hash, Width, Height FROM Albums INNER JOIN Photos on Albums.Hash=Photos.Hash WHERE Album=? ORDER BY Photos.Timestamp", (search_list,))
-                result = c.fetchall()
-                editable = True
-
-        if sort_by is not None and sort_by.sort_key is not None:
-            result.sort(key=lambda hwh: sort_by.sort_key(hwh[0]))
-            
-        return result, editable
+    def parse_query(self, filter_query: list, sort_by_query: list):
+        filters = {f.name: f for f in self.fo.rec_search_filters}
+        if len(filter_query) < 1 or filter_query[0] not in filters:
+            return None
+        filter_class = filters[filter_query[0]]
+        parsed_args = []
+        for arg in filter_query[1:]:
+            if isinstance(arg, list):
+                parsed = self.parse_query(arg)
+                if parsed is None:
+                    return None
+                parsed_args.append(parsed)
+        try:
+            search_filter = filter_class(*parsed_args)
+        except:
+            return None

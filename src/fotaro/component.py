@@ -8,9 +8,12 @@ class Component:
     def __init__(self, fo, **kwargs) -> None:
         ...
 
+    def setup(self):
+        ...
 
-    def get_sort_bys(self):
-        return []
+    def daemon(self):
+        ...
 
-    def get_search_filters(self):
-        return []
+    def __getattr__(self, name):
+        if name.startswith('rec_'):
+            return []
