@@ -43,24 +43,20 @@ function wait(timeout) {
     });
 }
 
-function post(path, params, responseType) {
-    responseType = responseType || "text"
-    var xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("POST", path, true)
-    xmlhttp.responseType = responseType;
-    var prom = new Promise(function(resolve, reject) {
-	xmlhttp.onreadystatechange = function() {
-	    if (xmlhttp.readyState == 4) {
-		if (xmlhttp.status >= 200 && xmlhttp.status < 300) {
-		    resolve(xmlhttp.response);
-		} else {
-		    reject(xmlhttp.response);
-		}
-	    }
-	};
+function post(path, params) {
+    return fetch(path, {
+	method: "POST",
+	headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+	},
+	body: JSON.stringify(params)
+    }).then(function(response) {
+	if (response.status >= 400) {
+	    throw response
+	}
+	return response;
     });
-    xmlhttp.send(JSON.stringify(params));
-    return prom;
 }
 
 function downloadBlob(blob, filename) {
@@ -165,8 +161,10 @@ function promptPasswordChange() {
 		    "oldPassword": oldPassword,
 		    "newPassword": newPassword1,
 		}).then(resolve, function(response) {
-		    passwordChangeModalErrorText.innerHTML = response;
-		    passwordChangeModalErrorText.style.display = "block"
+		    response.text().then(function(text) {
+			passwordChangeModalErrorText.innerHTML = text;
+			passwordChangeModalErrorText.style.display = "block"
+		    });
 		});
 	    }
 	};
@@ -191,8 +189,10 @@ function promptLogin() {
 		"username": username,
 		"password": password
 	    }).then(resolve, function(response) {
-		loginModalErrorText.innerHTML = response;
-		loginModalErrorText.style.display = "block"
+		response.text().then(function(text) {
+		    loginModalErrorText.innerHTML = text
+		    loginModalErrorText.style.display = "block"
+		})
 	    });
 	}
     }).then(function(result) {
@@ -469,8 +469,10 @@ function downloadPhotos(indices) {
     indices.forEach(function(idx) {
 	hashes.push(photoList[idx][0]);
     });
-    post("/download", {"hashes": hashes}, "blob").then(function(blob) {
-	downloadBlob(blob, "download.tar.gz");
+    post("/download", {"hashes": hashes}, "blob").then(function(response) {
+	response.blob().then(function(blob) {
+	    downloadBlob(blob, "download.tar.gz");
+	});
     });
 }
 

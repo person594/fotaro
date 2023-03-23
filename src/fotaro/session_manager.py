@@ -2,10 +2,12 @@ import sqlite3
 import hashlib
 import pickle
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Tuple
 import os
 from http.cookies import SimpleCookie
 from email.utils import format_datetime
+
+from flask import request, make_response, jsonify
 
 from .component import Component
 
@@ -51,6 +53,40 @@ class SessionManager(Component):
         self.short_term_session_timeout = timedelta(days=1)
         self.long_term_session_timeout = timedelta(days=365)
 
+    def setup(self):
+        @self.fo.server.route("/login", methods=['POST'])
+        def serve_login():
+            try:
+                username = request.json['username']
+                password = request.json['password']
+            except KeyError:
+                abort(400)
+            sess_id_expires = self.login(username, password)
+            if sess_id_expires is not None:
+                sess_id, expires = sess_id_expires
+                resp = make_response(username)
+                resp.set_cookie('sess_id', sess_id, expires=expires)
+                return resp
+            else:
+                return "Invalid username or password", 401
+
+        @self.fo.server.route("/username")
+        def serve_username():
+            sess_id = request.cookies.get('sess_id')
+            if sess_id is None:
+                return jsonify(None)
+            return jsonify(self.session_user(sess_id))
+
+        @self.fo.server.route("/logout")
+        def serve_logout():
+            sess_id = request.cookies.get('sess_id')
+            if sess_id is not None:
+                self.end_session(sess_id)
+            return jsonify(None)
+
+
+            
+
     # call this before we read from the sessions table
     def garbage_collect_sessions(self) -> None:
         now = now_timestamp()
@@ -81,26 +117,19 @@ class SessionManager(Component):
         with self.fo.con() as c:
             c.execute("UPDATE Users SET Salt=?, Passhash=? WHERE Username=?", (salt.hex(), passhash.hex(), username))
 
-    def make_session(self, username: str, long_term: bool = False) -> Optional[SimpleCookie]:
+    def make_session(self, username: str) -> Optional[Tuple[str, datetime]]:
         self.garbage_collect_sessions()
         with self.fo.con(True) as c:
             c.execute("SELECT SessionID FROM Sessions WHERE Username=?", (username,))
             if len(list(c.fetchall())) > self.max_sessions_per_user:
                 return None
         sess_id = os.urandom(32).hex()
-        if long_term:
-            expires = datetime.now(timezone.utc) + self.long_term_session_timeout
-        else:
-            expires = datetime.now(timezone.utc) + self.short_term_session_timeout
 
-        cookie = SimpleCookie()
-        cookie["test_field"] = "lol"
-        cookie["sess_id"] = sess_id
-        if long_term:
-            cookie["sess_id"]["expires"] = format_datetime(expires, True)
+        expires = datetime.now(timezone.utc) + self.short_term_session_timeout
+
         with self.fo.con() as c:
             c.execute("INSERT INTO Sessions VALUES(?, ?, ?)", (sess_id, username, utc_to_timestamp(expires)))
-        return cookie
+        return sess_id, expires
 
     def session_user(self, sess_id: str) -> Optional[str]:
         self.garbage_collect_sessions()
@@ -135,7 +164,7 @@ class SessionManager(Component):
             # bad password
             return False
 
-    def login(self, username: str, password: str) -> Optional[SimpleCookie]:
+    def login(self, username: str, password: str) -> Optional[Tuple[str, datetime]]:
         if self.authenticate(username, password):
             return self.make_session(username)
         else:
