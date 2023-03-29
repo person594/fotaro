@@ -218,6 +218,7 @@ function promptSearch() {
 	    resolve(null);
 	};
 	$('searchForm').onsubmit = function() {
+	    debugger;
 	    $('searchModalErrorText').style.display = "none";
 	    search_request = {
 		list: listName

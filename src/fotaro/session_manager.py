@@ -53,6 +53,14 @@ class SessionManager(Component):
         self.short_term_session_timeout = timedelta(days=1)
         self.long_term_session_timeout = timedelta(days=365)
 
+    def get_username(self, sess_id=None):
+        if sess_id is None:
+            sess_id = request.cookies.get('sess_id')
+        if sess_id is None:
+            return None
+        return self.session_user(sess_id)
+
+        
     def setup(self):
         @self.fo.server.route("/login", methods=['POST'])
         def serve_login():
@@ -84,8 +92,21 @@ class SessionManager(Component):
                 self.end_session(sess_id)
             return jsonify(None)
 
-
-            
+        @self.fo.server.route("/passwordChange", methods=["POST"])
+        def serve_password_change():
+            try:
+                old_password = request.json['oldPassword']
+                new_password = request.json['newPassword']
+            except KeyError:
+                abort(400)
+            username = self.get_username()
+            if username is None:
+                abort(400)
+            if self.authenticate(username, old_password):
+                self.set_password(username, new_password)
+                return "", 200
+            else:
+                return "Invalid password", 401            
 
     # call this before we read from the sessions table
     def garbage_collect_sessions(self) -> None:

@@ -103,7 +103,7 @@ class CAS(Component):
             c.execute("SELECT Photos.Hash, min(Path), Mime, Width, Height, Timestamp FROM Photos INNER JOIN Files ON Photos.Hash=Files.HASH GROUP BY Photos.Hash ORDER BY Timestamp DESC")
             results = c.fetchall()
         for hsh, path, mime, width, height, timestamp in results:
-            thumb_path, thumb_mime = self._thumb_path_mime(hsh)
+            thumb_path, thumb_mime = self.thumb_path_mime(hsh)
             yield CAS.Photo(hsh, path, mime, thumb_path, thumb_mime, width, height, timestamp)
 
 
@@ -117,7 +117,7 @@ class CAS(Component):
             raise IndexError("Hash not in CAS")
         else:
             hsh, path, mime, width, height, timestamp = r
-            thumb_path, thumb_mime = self._thumb_path_mime(hsh)
+            thumb_path, thumb_mime = self.thumb_path_mime(hsh)
             return CAS.Photo(hsh, path, mime, thumb_path, thumb_mime, width, height, timestamp)
         
         
@@ -206,7 +206,7 @@ class CAS(Component):
             resized = im.resize((int(w*s), int(h*s)), Image.LANCZOS)
             resized.save(thumb_path, "JPEG", exif=exif)
 
-    def _thumb_path_mime(self, hsh: str) -> Tuple[str, str]:
+    def thumb_path_mime(self, hsh: str) -> Tuple[str, str]:
         thumb_dir = os.path.join(self.thumbs_dir, hsh[:2])
         thumb_path = os.path.join(thumb_dir, hsh[2:] + ".jpeg")
         return thumb_path, "image/jpeg"

@@ -17,3 +17,5 @@ class Component:
     def __getattr__(self, name):
         if name.startswith('rec_'):
             return []
+        else:
+            raise AttributeError(f"'{__class__}' object has no attribute '{name}'")

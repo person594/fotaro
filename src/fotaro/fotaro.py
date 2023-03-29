@@ -134,6 +134,9 @@ class Fotaro:
             for component in self.components:
                 resources.extend(getattr(component, name))
             return resources
+        else:
+            raise AttributeError(f"'{__class__}' object has no attribute '{name}'")
+
         
     def get_albums(self) -> List[str]:
         with self.con(True) as c:

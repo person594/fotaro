@@ -310,12 +310,8 @@
       </svg>
       <div id="searchModal" class="modal">
 	<div id="searchModalErrorText" class="errorText" style="display: none;"></div>
-	<form  id="searchForm">
-	  <select name="filter">
-	    {% for filter in fo.rec_search_filters %}
-	    <option value="{{ filter.name }}"> {{filter.name}} </option>
-	    {% endfor %}
-	  </select>
+	<form searchForm>
+	  <input type="text" name="search_filter">
 	  <input type="submit" value="search">
 	  </form>
       </div>
